@@ -1,0 +1,13 @@
+node_modules
+.env*
+.next
+next-env.d.ts
+/dist/
+.vinext/
+.wrangler/
+tests/e2e/.auth/
+playwright-report/
+test-results/
+.wrangler/
+.claude/settings.local.json
+.dev.vars

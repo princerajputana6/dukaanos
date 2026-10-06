@@ -1,0 +1,102 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Development configuration (local `vinext dev`). Staging/production live under `env`.
+  "name": "dukaanos",
+  "compatibility_date": "2026-08-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./worker/index.ts",
+  "assets": {
+    "directory": "dist/client",
+    "not_found_handling": "none",
+    "binding": "ASSETS"
+  },
+  "observability": { "enabled": true },
+  "vars": {
+    "ENVIRONMENT": "development",
+    "APP_URL": "http://localhost:3100",
+    "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    "STT_MODEL": "@cf/openai/whisper-large-v3-turbo",
+    "FLAG_VOICE_ENABLED": "true",
+    "FLAG_AI_INSIGHTS_ENABLED": "true",
+    "FLAG_OFFLINE_ENABLED": "true",
+    "FLAG_GST_ENABLED": "true",
+    "FLAG_REPORTS_ENABLED": "true"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "dukaanos-dev",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "dukaanos-dev-files" }],
+  "ai": { "binding": "AI", "remote": true },
+  "ratelimits": [
+    { "name": "AUTH_LIMITER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },
+    { "name": "AI_LIMITER", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } }
+  ],
+  // 15:30 UTC = 21:00 IST — daily summary & outstanding reminders.
+  "triggers": { "crons": ["30 15 * * *"] },
+
+  "env": {
+    "staging": {
+      "name": "dukaanos-staging",
+      "vars": {
+        "ENVIRONMENT": "staging",
+        "APP_URL": "https://dukaanos-staging.example.workers.dev",
+        "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+        "STT_MODEL": "@cf/openai/whisper-large-v3-turbo",
+        "FLAG_VOICE_ENABLED": "true",
+        "FLAG_AI_INSIGHTS_ENABLED": "true",
+        "FLAG_OFFLINE_ENABLED": "true",
+        "FLAG_GST_ENABLED": "true",
+        "FLAG_REPORTS_ENABLED": "true"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "dukaanos-staging",
+          "database_id": "REPLACE_WITH_STAGING_D1_ID",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "r2_buckets": [{ "binding": "FILES", "bucket_name": "dukaanos-staging-files" }],
+      "ai": { "binding": "AI" },
+      "ratelimits": [
+        { "name": "AUTH_LIMITER", "namespace_id": "2001", "simple": { "limit": 10, "period": 60 } },
+        { "name": "AI_LIMITER", "namespace_id": "2002", "simple": { "limit": 30, "period": 60 } }
+      ],
+      "triggers": { "crons": ["30 15 * * *"] }
+    },
+    "production": {
+      "name": "dukaanos",
+      "vars": {
+        "ENVIRONMENT": "production",
+        "APP_URL": "https://app.dukaanos.in",
+        "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+        "STT_MODEL": "@cf/openai/whisper-large-v3-turbo",
+        "FLAG_VOICE_ENABLED": "true",
+        "FLAG_AI_INSIGHTS_ENABLED": "true",
+        "FLAG_OFFLINE_ENABLED": "true",
+        "FLAG_GST_ENABLED": "true",
+        "FLAG_REPORTS_ENABLED": "true"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "dukaanos-prod",
+          "database_id": "REPLACE_WITH_PRODUCTION_D1_ID",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "r2_buckets": [{ "binding": "FILES", "bucket_name": "dukaanos-files" }],
+      "ai": { "binding": "AI" },
+      "ratelimits": [
+        { "name": "AUTH_LIMITER", "namespace_id": "3001", "simple": { "limit": 10, "period": 60 } },
+        { "name": "AI_LIMITER", "namespace_id": "3002", "simple": { "limit": 30, "period": 60 } }
+      ],
+      "triggers": { "crons": ["30 15 * * *"] }
+    }
+  }
+}

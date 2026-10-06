@@ -1,0 +1,14 @@
+# Local overrides for `pnpm dev` / `wrangler dev`. Copy to .dev.vars (git-ignored).
+# DukaanOS needs NO API keys: AI and speech use the Workers AI binding, and the
+# database/files use D1/R2 bindings configured in wrangler.jsonc.
+
+# Optional — password-reset emails via Cloudflare Email Service. Requires a domain
+# onboarded to Email Sending AND a `send_email` binding named EMAIL (see DEPLOYMENT.md).
+# EMAIL_FROM=no-reply@yourdomain.in
+
+# Optional — feature flags (true/false). Businesses can further switch them off in Settings.
+# FLAG_VOICE_ENABLED=true
+# FLAG_AI_INSIGHTS_ENABLED=true
+# FLAG_OFFLINE_ENABLED=true
+# FLAG_GST_ENABLED=true
+# FLAG_REPORTS_ENABLED=true
