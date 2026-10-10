@@ -453,3 +453,52 @@ data; migrations are forward-only and additive. See `DEPLOYMENT.md`.
 - Offline: sales/payments/expenses queue offline; new products, purchases and settings need
   a connection. Stock checks for queued sales happen when they sync.
 - GST: summary report only — no GSTR filing or e-invoicing.
+
+---
+
+## 16. Platform: super admin, tenants, branches & licensing
+
+```
+Agency (optional reseller/partner)
+  └─ Tenant (an owner's account — holds the licence)
+       └─ Shop / branch (= `businesses` row: own stock, sales, khata, staff, audit)
+```
+
+| Table | Purpose |
+|---|---|
+| `agencies` | Partners who onboard and support shops |
+| `tenants` | Owner account: name, agency, owner user, status (ACTIVE/SUSPENDED) |
+| `licenses` | One per tenant: plan (TRIAL/BASIC/PRO/ENTERPRISE), status, `max_branches`, `max_users`, `valid_until` (IST date, null = no end) |
+| `license_events` | History of every licence change (before/after, actor, note) |
+| `platform_audit_logs` | Every action taken in the super admin console |
+| `businesses.tenant_id / branch_code / status` | Shop → tenant link, code like MAIN/BR-2, ACTIVE/SUSPENDED/ARCHIVED |
+| `users.platform_role` | `SUPER_ADMIN` or null |
+
+**Why each branch is its own shop:** the existing per-business isolation, stock ledger, khata and
+roles stay exactly as they are; owners switch branches with the business switcher; a branch can
+copy the catalogue (prices, GST, aliases, packs) with zero stock.
+
+**Licence enforcement.** The effective status is computed per request
+(`ACTIVE/TRIAL` past `valid_until` ⇒ `EXPIRED`). If the shop, tenant or licence is not in good
+standing, `ServiceContext.writable = false` and the transaction engine's `commit()` refuses every
+business write with `LICENSE_INACTIVE` — reads and CSV exports keep working, so owners never lose
+access to their data. Limits: adding a branch beyond `max_branches` or a user beyond `max_users`
+(distinct active users across the tenant's shops) fails with `LIMIT_REACHED`.
+
+**Signup:** self-signup creates a tenant with a 30-day TRIAL (1 shop, 3 users).
+**Migration 0003** backfilled every pre-existing shop into its own tenant with an ACTIVE, non-expiring
+BASIC licence, so no existing user was affected.
+
+**Super admin console (`/admin`, API `/api/admin/*`)** — guarded by `requireSuperAdmin`:
+overview counts (tenants, shops, branches, agencies, owners/users, active shops, licences by
+status/plan, expiring ≤ 7 days, platform sales), tenants & licences (change plan/limits/validity,
++30 days / +1 year, suspend), shops & branches (suspend/reactivate), agencies, owners & users
+(disable, reset password, grant/revoke super admin), admin audit log, and the **Create shop**
+wizard (new or existing tenant → owner login → shop → initial data: sample catalogue, CSV with
+opening stock, copy from another branch, opening customers/suppliers). Initial data goes through
+the normal services, so opening stock appears as stock movements and the shop's audit log shows
+it with source `IMPORT`; admin actions inside a shop are mirrored to that shop's audit log
+(source `SYSTEM`).
+
+**Bootstrapping a super admin:** `pnpm admin:create --mobile … --name … --env production`
+(creates a login or promotes an existing one; password via hidden prompt).

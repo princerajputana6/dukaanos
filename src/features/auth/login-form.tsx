@@ -18,9 +18,10 @@ export function LoginForm() {
   const onSubmit = form.handleSubmit(async (values) => {
     setServerError(null);
     try {
-      const res = await apiPost<{ businessId: string | null }>("/auth/login", values);
+      const res = await apiPost<{ businessId: string | null; platformRole: string | null }>("/auth/login", values);
       const next = new URLSearchParams(window.location.search).get("next");
-      window.location.assign(next && next.startsWith("/") && !next.startsWith("//") ? next : res.businessId ? "/dashboard" : "/onboarding");
+      const home = res.platformRole === "SUPER_ADMIN" && !res.businessId ? "/admin" : res.businessId ? "/dashboard" : "/onboarding";
+      window.location.assign(next && next.startsWith("/") && !next.startsWith("//") ? next : home);
     } catch (err) {
       setServerError(errorMessage(err));
     }

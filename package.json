@@ -77,6 +77,7 @@
     "db:seed:local": "tsx scripts/seed.ts",
     "db:reset:local": "rm -rf .wrangler/state/v3/d1 && pnpm db:migrate:local && pnpm db:seed:local",
     "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
-    "icons": "node scripts/generate-icons.mjs"
+    "icons": "node scripts/generate-icons.mjs",
+    "admin:create": "tsx scripts/create-super-admin.ts"
   }
 }

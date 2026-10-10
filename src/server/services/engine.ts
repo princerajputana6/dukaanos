@@ -59,6 +59,8 @@ export class NumberConflict extends Error {}
  * response) is written FIRST in the same batch, so a concurrent duplicate aborts entirely.
  */
 export async function commit<T>(ctx: ServiceContext, stmts: Stmt[], result: T, ticket?: IdempotencyTicket | null): Promise<T> {
+  // Licence / suspension guard: every business write passes through here.
+  if (ctx.writable === false) throw new AppError("LICENSE_INACTIVE", ctx.readOnlyReason ?? "This shop is read-only right now.");
   const items: Stmt[] = [];
   if (ticket) {
     items.push(

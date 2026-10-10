@@ -218,3 +218,21 @@ async function getText(cookie: string, path: string) {
   const res = await getApp().fetch(new Request(`http://localhost/api${path}`, { headers: { cookie } }), env);
   return res.text();
 }
+
+describe("list aggregates (correlated subqueries)", () => {
+  it("shows each customer's own purchase total and each category's own product count", async () => {
+    const { cookie } = await signupOwner();
+    const p = await createProduct(cookie, { sellingPricePaise: 1000, gstRateBp: 0, categoryName: "Snacks" });
+    await createProduct(cookie, { categoryName: "Snacks" });
+    await createProduct(cookie, { categoryName: "Dairy" });
+    const a = await createCustomer(cookie, "Anil");
+    const b = await createCustomer(cookie, "Bina");
+    await call("POST", "/sales", { cookie, idempotencyKey: key(), body: { items: [{ productId: p, quantityMilli: 3000 }], customerId: a, payment: { method: "CASH" } } });
+    const list = await call("GET", "/customers?sort=name", { cookie });
+    const by = Object.fromEntries(list.body.data.items.map((c: { id: string; totalPurchasesPaise: number }) => [c.id, c.totalPurchasesPaise]));
+    expect(by[a]).toBe(3000);
+    expect(by[b]).toBe(0);
+    const cats = await call("GET", "/products/categories", { cookie });
+    expect(Object.fromEntries(cats.body.data.map((c: { name: string; productCount: number }) => [c.name, c.productCount]))).toEqual({ Dairy: 1, Snacks: 2 });
+  });
+});

@@ -155,3 +155,40 @@ export function stockState(currentMilli: number, thresholdMilli: number): StockS
   if (currentMilli <= thresholdMilli) return "LOW_STOCK";
   return "IN_STOCK";
 }
+
+// ─── Platform: tenants, branches & licensing ─────────────────────────────────
+
+export const PLATFORM_ROLES = ["SUPER_ADMIN"] as const;
+export type PlatformRole = (typeof PLATFORM_ROLES)[number];
+
+export const LICENSE_PLANS = {
+  TRIAL: { label: "Free trial", maxBranches: 1, maxUsers: 3, days: 30 },
+  BASIC: { label: "Basic", maxBranches: 1, maxUsers: 5, days: 365 },
+  PRO: { label: "Pro", maxBranches: 5, maxUsers: 20, days: 365 },
+  ENTERPRISE: { label: "Enterprise", maxBranches: 50, maxUsers: 200, days: 365 },
+} as const;
+export type LicensePlan = keyof typeof LICENSE_PLANS;
+export const LICENSE_PLAN_KEYS = Object.keys(LICENSE_PLANS) as [LicensePlan, ...LicensePlan[]];
+
+export const LICENSE_STATUSES = ["TRIAL", "ACTIVE", "SUSPENDED", "EXPIRED", "CANCELLED"] as const;
+export type LicenseStatus = (typeof LICENSE_STATUSES)[number];
+
+/** The status that actually applies today (an ACTIVE/TRIAL licence past its end date is EXPIRED). */
+export function effectiveLicenseStatus(l: { status: string; validUntil: string | null }, todayIst: string): LicenseStatus {
+  if (l.status === "SUSPENDED" || l.status === "CANCELLED" || l.status === "EXPIRED") return l.status;
+  if (l.validUntil && l.validUntil < todayIst) return "EXPIRED";
+  return l.status === "TRIAL" ? "TRIAL" : "ACTIVE";
+}
+
+/** Shops on an unusable licence (or suspended) stay readable but cannot record anything. */
+export function licenseAllowsWrites(status: LicenseStatus): boolean {
+  return status === "TRIAL" || status === "ACTIVE";
+}
+
+export const LICENSE_STATUS_LABELS: Record<LicenseStatus, string> = {
+  TRIAL: "Trial",
+  ACTIVE: "Active",
+  SUSPENDED: "Suspended",
+  EXPIRED: "Expired",
+  CANCELLED: "Cancelled",
+};

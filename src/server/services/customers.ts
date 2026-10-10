@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, gt, sql, type SQL } from "drizzle-orm";
+import { ref } from "@/server/db/sql";
 import type { z } from "zod";
 import { toCsv } from "@/lib/csv";
 import { newId } from "@/lib/ids";
@@ -138,7 +139,7 @@ export async function listCustomers(ctx: ServiceContext, input: ListInput) {
       balancePaise: customers.balancePaise,
       lastTxnAt: customers.lastTxnAt,
       createdAt: customers.createdAt,
-      totalPurchasesPaise: sql<number>`(select coalesce(sum(s.total_paise), 0) from sales s where s.business_id = ${ctx.businessId} and s.customer_id = ${customers.id} and s.status = 'COMPLETED')`,
+      totalPurchasesPaise: sql<number>`(select coalesce(sum(s.total_paise), 0) from sales s where s.business_id = ${ctx.businessId} and s.customer_id = ${ref(customers.id)} and s.status = 'COMPLETED')`,
     })
     .from(customers)
     .where(and(...conds))

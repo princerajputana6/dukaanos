@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSession } from "@/features/session/session-context";
 import { AssistantTurn } from "@/features/voice/assistant-turn";
-import { pickProvider, SpeechError, type ListeningSession } from "@/features/voice/speech";
+import { pickProvider, SpeechError, startListening, type ListeningSession } from "@/features/voice/speech";
 import { useAssistantApi } from "@/features/voice/use-assistant";
 import { MicOrb, VOICE_EXAMPLES } from "@/features/voice/voice-sheet";
 import { apiGet, errorMessage } from "@/lib/api";
@@ -57,11 +57,14 @@ export function AssistantChat() {
   };
 
   const listen = async () => {
-    const provider = pickProvider(me.settings.voiceProvider);
-    if (!provider || !me.flags.VOICE_ENABLED) return void toast.error("Voice isn't available here — please type.");
+    if (!pickProvider(me.settings.voiceProvider) || !me.flags.VOICE_ENABLED) return void toast.error("Voice isn't available here — please type.");
     setPhase("listening");
     try {
-      const s = provider.transcribe({ onInterim: (x) => setPending(x || null), onLevel: setLevel });
+      const s = startListening(me.settings.voiceProvider, {
+        onInterim: (x) => setPending(x || null),
+        onLevel: setLevel,
+        onProcessing: () => setPhase("processing"),
+      });
       session.current = s;
       const r = await s.result;
       session.current = null;
@@ -69,7 +72,15 @@ export function AssistantChat() {
       else if (r.kind === "response") upsert(r.response);
       else toast.message("I didn't hear anything.");
     } catch (err) {
-      toast.error(err instanceof SpeechError && err.code === "not-allowed" ? "Allow microphone access to speak." : errorMessage(err));
+      toast.error(
+        err instanceof SpeechError
+          ? err.code === "not-allowed"
+            ? "Allow microphone access to speak."
+            : err.code === "network"
+              ? "Voice recognition can't connect right now. Please type instead."
+              : "I couldn't hear that. Please try again."
+          : errorMessage(err),
+      );
     } finally {
       setPending(null);
       setPhase("idle");

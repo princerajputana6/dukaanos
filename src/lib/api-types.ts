@@ -67,3 +67,18 @@ export type Role = R<typeof members.listRoles>[number];
 export type SearchResults = R<typeof search.globalSearch>;
 
 export type AssistantResponse = ai.AssistantResponse;
+
+import type * as adminSvc from "@/server/services/admin";
+import type * as branchSvc from "@/server/services/branches";
+export type AdminOverview = R<typeof adminSvc.overview>;
+export type AdminTenantList = R<typeof adminSvc.listTenants>;
+export type AdminTenantRow = AdminTenantList["items"][number];
+export type AdminTenantDetail = R<typeof adminSvc.getTenant>;
+export type AdminShopList = R<typeof adminSvc.listShops>;
+export type AdminShopRow = AdminShopList["items"][number];
+export type AdminAgency = R<typeof adminSvc.listAgencies>[number];
+export type AdminUserList = R<typeof adminSvc.listUsers>;
+export type AdminUserRow = AdminUserList["items"][number];
+export type AdminAuditList = R<typeof adminSvc.listPlatformAudit>;
+export type AdminCreateShopResult = adminSvc.CreateShopResult;
+export type BranchList = R<typeof branchSvc.listBranches>;

@@ -53,6 +53,18 @@ pnpm db:migrate:production   # wrangler d1 migrations apply dukaanos-prod --remo
 Changing the schema: edit `src/server/db/schema.ts` → `pnpm db:generate` → review the SQL →
 commit → apply to staging → deploy → verify → apply to production → deploy.
 
+### Super admin
+
+After migrations, create your platform login (once per environment):
+
+```bash
+pnpm admin:create --mobile 98xxxxxxxx --name "Your Name" --env production
+```
+
+It promotes an existing account, or creates a new one (password asked at a hidden prompt).
+Log in with that mobile and open `/admin` to manage tenants, shops, agencies and licences,
+and to create shops with their initial data.
+
 ## 4. Deploy
 
 ```bash

@@ -1,6 +1,6 @@
 "use client";
 import { useQueryClient } from "@tanstack/react-query";
-import { BellIcon, BuildingIcon, ChevronRightIcon, DatabaseIcon, KeyRoundIcon, MicIcon, PackageIcon, ReceiptTextIcon, ShieldCheckIcon, UsersIcon } from "lucide-react";
+import { BellIcon, BuildingIcon, ChevronRightIcon, DatabaseIcon, KeyRoundIcon, MicIcon, PackageIcon, ReceiptTextIcon, ShieldCheckIcon, StoreIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import { fromMilli, toMilli } from "@/lib/qty";
 
 const SECTIONS = [
   { href: "/settings/business", label: "Business", desc: "Name, type, address, contact", icon: BuildingIcon, perm: "settings.manage" },
+  { href: "/settings/branches", label: "Branches & plan", desc: "Your shops, licence and limits", icon: StoreIcon, perm: null },
   { href: "/settings/users", label: "Users", desc: "Staff accounts and access", icon: UsersIcon, perm: "users.manage" },
   { href: "/settings/roles", label: "Roles", desc: "What each role can do", icon: ShieldCheckIcon, perm: "users.manage" },
   { href: "/settings/gst", label: "GST", desc: "GSTIN, legal name, state", icon: ReceiptTextIcon, perm: "settings.manage" },

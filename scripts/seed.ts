@@ -6,13 +6,17 @@
  *   pnpm db:migrate:local && pnpm db:seed:local
  *
  * Demo logins (local only):
- *   Owner  98765 43210 / dukaan123
- *   Staff  98765 00001 / staff1234
+ *   Super admin  99999 00000 / admin12345  (→ /admin)
+ *   Owner        98765 43210 / dukaan123
+ *   Staff        98765 00001 / staff1234
  */
 import { getPlatformProxy } from "wrangler";
 import { addDays, istDayStartMs, todayIst } from "../src/lib/dates";
 import { getDb } from "../src/server/db/client";
-import { businesses, users } from "../src/server/db/schema";
+import { businesses, licenses, tenants, users } from "../src/server/db/schema";
+import { newId } from "../src/lib/ids";
+import { hashPassword } from "../src/server/auth/password";
+import { createShop, saveAgency, updateLicense, updateTenant, type AdminContext } from "../src/server/services/admin";
 import { eq } from "drizzle-orm";
 import { createLogger } from "../src/server/lib/logger";
 import { signup } from "../src/server/services/auth";
@@ -30,6 +34,7 @@ import { runDailyJobs } from "../src/server/services/notifications";
 import type { Permission } from "../src/lib/domain";
 
 const OWNER_MOBILE = "9876543210";
+const SUPER_ADMIN_MOBILE = "9999900000";
 
 async function main() {
   const proxy = await getPlatformProxy<Env>({ configPath: "wrangler.jsonc" });
@@ -148,10 +153,46 @@ async function main() {
   }
 
   clock = Date.now();
+
+  // ── Platform: super admin, an agency, Sharma's 2nd branch and a few other tenants ──
+  const adminId = newId(clock);
+  await db.insert(users).values({ id: adminId, name: "DukaanOS Admin", mobile: SUPER_ADMIN_MOBILE, email: "admin@dukaanos.example", passwordHash: await hashPassword("admin12345"), platformRole: "SUPER_ADMIN", createdAt: clock, updatedAt: clock });
+  const actx: AdminContext = { db, env, actorUserId: adminId, actorName: "DukaanOS Admin", ip: null, requestId: "seed", now: clock, logger: quiet };
+  const agency = await saveAgency(actx, { name: "Jaipur Retail Partners", contactName: "Neha Jain", phone: "9414000099", email: null, city: "Jaipur", status: "ACTIVE", notes: "Reseller for Rajasthan" });
+  const sharmaTenant = (await db.select({ tenantId: businesses.tenantId }).from(businesses).where(eq(businesses.id, businessId)).get())!.tenantId!;
+  await updateTenant(actx, sharmaTenant, { agencyId: agency.id });
+  await updateLicense(actx, sharmaTenant, { plan: "PRO", validUntil: addDays(today, 300), note: "Annual Pro plan — paid via UPI" });
+  await createShop(actx, {
+    tenant: { mode: "existing", tenantId: sharmaTenant },
+    shop: { name: "Sharma General Store — Malviya Nagar", type: "grocery", city: "Jaipur", stateCode: "08", branchCode: "MNR" },
+    initialData: { sampleProducts: true, customers: [{ name: "Kavita", phone: "9811000010", openingBalancePaise: 12000 }], suppliers: [] },
+  });
+  const others = [
+    { name: "Gupta Kirana", owner: "Ravi Gupta", mobile: "9876511111", type: "grocery", city: "Lucknow", state: "09", plan: "TRIAL", valid: addDays(today, 5), agencyId: agency.id },
+    { name: "Verma Paan Bhandar", owner: "Sunil Verma", mobile: "9876522222", type: "paan", city: "Varanasi", state: "09", plan: "BASIC", valid: addDays(today, -3), agencyId: null },
+    { name: "Mehta Stationers", owner: "Pooja Mehta", mobile: "9876533333", type: "stationery", city: "Ahmedabad", state: "24", plan: "BASIC", valid: addDays(today, 200), agencyId: null },
+    { name: "Chai Point Cafe", owner: "Arjun Rao", mobile: "9876544444", type: "cafe", city: "Bengaluru", state: "29", plan: "TRIAL", valid: addDays(today, 21), agencyId: agency.id },
+  ] as const;
+  for (const o of others) {
+    await createShop(actx, {
+      tenant: { mode: "new", name: o.name, agencyId: o.agencyId, plan: o.plan, validUntil: o.valid > today ? o.valid : addDays(today, 30) },
+      owner: { mode: "new", name: o.owner, mobile: o.mobile, email: null, password: "dukaan123" },
+      shop: { name: o.name, type: o.type, city: o.city, stateCode: o.state },
+      initialData: { sampleProducts: true, customers: [], suppliers: [] },
+    });
+    if (o.valid < today) {
+      // Simulate a licence that ran out (the console shows it as Expired, the shop goes read-only).
+      const t = await db.select({ id: tenants.id }).from(tenants).where(eq(tenants.name, o.name)).get();
+      await db.update(licenses).set({ validUntil: o.valid }).where(eq(licenses.tenantId, t!.id));
+    }
+  }
+
   await runDailyJobs(db, env, clock, logger);
   const biz = await db.select().from(businesses).where(eq(businesses.id, businessId)).get();
-  console.log(`\n✓ Seeded "${biz?.name}" with ${products.length} products, 3 customers, 2 suppliers and ${sales} sales over 30 days.`);
-  console.log(`  Owner login: ${OWNER_MOBILE} / dukaan123   ·   Staff login: 9876500001 / staff1234\n`);
+  console.log(`\n✓ Seeded "${biz?.name}" (+ Malviya Nagar branch) with ${products.length} products, 3 customers, 2 suppliers and ${sales} sales over 30 days,`);
+  console.log(`  plus ${others.length} more tenants and 1 agency.`);
+  console.log(`  Super admin: ${SUPER_ADMIN_MOBILE} / admin12345  →  /admin`);
+  console.log(`  Owner login: ${OWNER_MOBILE} / dukaan123   ·   Staff login: 9876500001 / staff1234   ·   Other owners: 98765 11111…44444 / dukaan123\n`);
   await proxy.dispose();
 }
 

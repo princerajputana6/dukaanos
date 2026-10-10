@@ -20,6 +20,9 @@ export interface ServiceContext {
   ip: string | null;
   now: number;
   logger: Logger;
+  /** False when the shop/tenant/licence is not in good standing (see ShopAccess). */
+  writable?: boolean;
+  readOnlyReason?: string | null;
 }
 
 export function can(ctx: Pick<ServiceContext, "permissions">, permission: Permission): boolean {

@@ -3,9 +3,10 @@
  */
 import { and, eq, gt, lt } from "drizzle-orm";
 import type { Db } from "@/server/db/client";
-import { businesses, businessMembers, roles, rolePermissions, sessions, users } from "@/server/db/schema";
+import { businesses, businessMembers, licenses, roles, rolePermissions, sessions, tenants, users } from "@/server/db/schema";
 import { randomToken, sha256Hex } from "@/server/lib/crypto";
-import type { Permission } from "@/lib/domain";
+import { effectiveLicenseStatus, licenseAllowsWrites, type LicenseStatus, type Permission, type PlatformRole } from "@/lib/domain";
+import { todayIst } from "@/lib/dates";
 
 export const SESSION_COOKIE = "dk_session";
 export const SESSION_TTL_MS = 30 * 24 * 3600_000;
@@ -35,15 +36,31 @@ export interface SessionUser {
   sessionId: string;
   expiresAt: number;
   refreshed: boolean;
-  user: { id: string; name: string; mobile: string; email: string | null };
-  membership: {
-    businessId: string;
-    businessName: string;
-    onboardedAt: number | null;
-    roleKey: string;
-    roleName: string;
-    permissions: Permission[];
-  } | null;
+  user: { id: string; name: string; mobile: string; email: string | null; platformRole: PlatformRole | null };
+  membership: Membership | null;
+}
+
+export interface ShopAccess {
+  tenantId: string | null;
+  businessStatus: string;
+  tenantStatus: string;
+  plan: string | null;
+  licenseStatus: LicenseStatus;
+  validUntil: string | null;
+  /** False when the shop, tenant or licence is not in good standing → read-only. */
+  writable: boolean;
+  /** Human explanation when not writable. */
+  reason: string | null;
+}
+
+export interface Membership {
+  businessId: string;
+  businessName: string;
+  onboardedAt: number | null;
+  roleKey: string;
+  roleName: string;
+  permissions: Permission[];
+  access: ShopAccess;
 }
 
 /** Validates a session token, slides its expiry, and loads the active membership. */
@@ -71,17 +88,29 @@ export async function resolveSession(db: Db, token: string, now: number): Promis
     sessionId: id,
     expiresAt,
     refreshed,
-    user: { id: row.user.id, name: row.user.name, mobile: row.user.mobile, email: row.user.email },
+    user: {
+      id: row.user.id,
+      name: row.user.name,
+      mobile: row.user.mobile,
+      email: row.user.email,
+      platformRole: (row.user.platformRole as PlatformRole | null) ?? null,
+    },
     membership,
   };
 }
 
-export async function loadMembership(db: Db, userId: string, businessId: string): Promise<SessionUser["membership"]> {
+export async function loadMembership(db: Db, userId: string, businessId: string): Promise<Membership | null> {
   const m = await db
     .select({
       businessId: businesses.id,
       businessName: businesses.name,
       onboardedAt: businesses.onboardedAt,
+      businessStatus: businesses.status,
+      tenantId: businesses.tenantId,
+      tenantStatus: tenants.status,
+      plan: licenses.plan,
+      licenseStatus: licenses.status,
+      validUntil: licenses.validUntil,
       roleId: roles.id,
       roleKey: roles.key,
       roleName: roles.name,
@@ -89,6 +118,8 @@ export async function loadMembership(db: Db, userId: string, businessId: string)
     .from(businessMembers)
     .innerJoin(businesses, eq(businesses.id, businessMembers.businessId))
     .innerJoin(roles, eq(roles.id, businessMembers.roleId))
+    .leftJoin(tenants, eq(tenants.id, businesses.tenantId))
+    .leftJoin(licenses, eq(licenses.tenantId, businesses.tenantId))
     .where(and(eq(businessMembers.userId, userId), eq(businessMembers.businessId, businessId), eq(businessMembers.isActive, true)))
     .get();
   if (!m) return null;
@@ -100,6 +131,31 @@ export async function loadMembership(db: Db, userId: string, businessId: string)
     roleKey: m.roleKey,
     roleName: m.roleName,
     permissions: perms.map((p) => p.key as Permission),
+    access: shopAccess(m, todayIst()),
+  };
+}
+
+/** Works out whether a shop may record transactions today, and why not. */
+export function shopAccess(
+  m: { tenantId: string | null; businessStatus: string; tenantStatus: string | null; plan: string | null; licenseStatus: string | null; validUntil: string | null },
+  today: string,
+): ShopAccess {
+  const licenseStatus = m.licenseStatus ? effectiveLicenseStatus({ status: m.licenseStatus, validUntil: m.validUntil }, today) : "ACTIVE";
+  const tenantStatus = m.tenantStatus ?? "ACTIVE";
+  let reason: string | null = null;
+  if (m.businessStatus !== "ACTIVE") reason = "This shop has been suspended by DukaanOS. You can view your data but not record new entries.";
+  else if (tenantStatus !== "ACTIVE") reason = "Your DukaanOS account is suspended. You can view your data but not record new entries.";
+  else if (!licenseAllowsWrites(licenseStatus))
+    reason = licenseStatus === "EXPIRED" ? "Your DukaanOS licence has expired. Renew it to keep recording sales." : `Your DukaanOS licence is ${licenseStatus.toLowerCase()}. You can view your data but not record new entries.`;
+  return {
+    tenantId: m.tenantId,
+    businessStatus: m.businessStatus,
+    tenantStatus,
+    plan: m.plan,
+    licenseStatus,
+    validUntil: m.validUntil,
+    writable: reason === null,
+    reason,
   };
 }
 

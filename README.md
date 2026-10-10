@@ -25,6 +25,11 @@ purchases, expenses and GST-ready reports.
 - **Khata.** Customer udhaar, payments, adjustments, running balances, WhatsApp reminders.
 - **Works offline.** Installable PWA, cached catalogue, and an offline queue for sales,
   payments and expenses that syncs safely (idempotent) — never shown as saved until it is.
+- **Super admin console (`/admin`).** Every tenant, shop/branch, agency, owner and licence in one
+  place: counts, licence plans/limits/expiry, suspend/reactivate, and a "Create shop" wizard that
+  sets up the owner login and loads initial products, stock, customers and suppliers.
+- **Branches & licensing.** A tenant (owner account) can run several shops; each branch has its own
+  stock and khata. Expired or suspended licences make shops read-only — never locked out of data.
 - **Multi-tenant & role-based.** Owner / Manager / Staff and custom roles; strict business
   isolation enforced on the server.
 
@@ -49,7 +54,9 @@ pnpm db:seed:local     # demo "Sharma General Store" with 30 days of history
 pnpm dev               # → http://localhost:3100
 ```
 
-Demo logins (local only): **98765 43210 / dukaan123** (owner) · **98765 00001 / staff1234** (staff).
+Demo logins (local only): **99999 00000 / admin12345** (super admin → `/admin`) ·
+**98765 43210 / dukaan123** (owner, 2 branches) · **98765 00001 / staff1234** (staff) ·
+**98765 11111 … 44444 / dukaan123** (other demo owners: trial, expired, basic, café).
 
 ## Scripts
 
@@ -58,12 +65,13 @@ Demo logins (local only): **98765 43210 / dukaan123** (owner) · **98765 00001 /
 | `pnpm dev` | Dev server (workerd, local D1/R2) on port 3100 |
 | `pnpm build` / `pnpm start` | Production build / run it locally with Wrangler |
 | `pnpm typecheck` · `pnpm lint` | TypeScript strict · ESLint |
-| `pnpm test` | Unit + integration tests (108) |
+| `pnpm test` | Unit + integration tests (120) |
 | `pnpm test:e2e` | Playwright E2E (build first) |
 | `pnpm check` | typecheck + lint + test + build |
 | `pnpm db:generate` | Generate a migration from `src/server/db/schema.ts` |
 | `pnpm db:migrate:{local,staging,production}` | Apply migrations |
 | `pnpm db:seed:local` · `pnpm db:reset:local` | Seed / wipe + reseed the local DB |
+| `pnpm admin:create --mobile … --name … [--env production]` | Create or promote a super admin |
 | `pnpm deploy:{staging,production}` | Deploy (see [DEPLOYMENT.md](DEPLOYMENT.md)) |
 
 ## Project layout

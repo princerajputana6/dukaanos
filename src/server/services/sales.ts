@@ -7,6 +7,7 @@
  *  13. audit — all in ONE atomic batch, then low-stock alerts post-commit.
  */
 import { and, desc, eq, gte, inArray, like, lte, or, sql, type SQL } from "drizzle-orm";
+import { ref } from "@/server/db/sql";
 import type { z } from "zod";
 import { toCsv } from "@/lib/csv";
 import { newId } from "@/lib/ids";
@@ -371,7 +372,7 @@ export async function listSales(ctx: ServiceContext, input: ListInput) {
   if (input.customerId) conds.push(eq(sales.customerId, input.customerId));
   if (input.q) {
     const q = `%${escapeLike(input.q)}%`;
-    conds.push(or(like(sales.invoiceNumber, q), like(customers.name, q), sql`exists (select 1 from sale_items si where si.sale_id = ${sales.id} and si.product_name like ${q} escape '\\')`)!);
+    conds.push(or(like(sales.invoiceNumber, q), like(customers.name, q), sql`exists (select 1 from sale_items si where si.sale_id = ${ref(sales.id)} and si.product_name like ${q} escape '\\')`)!);
   }
   const where = and(...conds);
   const rows = await ctx.db
@@ -389,7 +390,7 @@ export async function listSales(ctx: ServiceContext, input: ListInput) {
       source: sales.source,
       customerId: sales.customerId,
       customerName: customers.name,
-      itemsPreview: sql<string>`(select group_concat(product_name, ', ') from (select product_name from sale_items si where si.sale_id = ${sales.id} limit 3))`,
+      itemsPreview: sql<string>`(select group_concat(product_name, ', ') from (select product_name from sale_items si where si.sale_id = ${ref(sales.id)} limit 3))`,
     })
     .from(sales)
     .leftJoin(customers, eq(customers.id, sales.customerId))

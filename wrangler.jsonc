@@ -73,7 +73,7 @@
       "name": "dukaanos",
       "vars": {
         "ENVIRONMENT": "production",
-        "APP_URL": "https://app.dukaanos.in",
+        "APP_URL": "https://dukaanos-production.connect-88a.workers.dev",
         "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
         "STT_MODEL": "@cf/openai/whisper-large-v3-turbo",
         "FLAG_VOICE_ENABLED": "true",
@@ -86,7 +86,7 @@
         {
           "binding": "DB",
           "database_name": "dukaanos-prod",
-          "database_id": "REPLACE_WITH_PRODUCTION_D1_ID",
+          "database_id": "396e2451-66de-4c42-9940-67a48c3570b1",
           "migrations_dir": "migrations"
         }
       ],

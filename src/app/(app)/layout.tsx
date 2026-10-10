@@ -10,7 +10,7 @@ import { getBusinessBundle } from "@/server/services/business";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getPageSession();
   if (!session) redirect("/login");
-  if (!session.membership) redirect("/login");
+  if (!session.membership) redirect(session.user.platformRole === "SUPER_ADMIN" ? "/admin" : "/login");
   if (!session.membership.onboardedAt) redirect("/onboarding");
 
   const db = getDb(env.DB);

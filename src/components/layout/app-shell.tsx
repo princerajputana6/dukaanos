@@ -1,5 +1,5 @@
 "use client";
-import { ChevronsUpDownIcon, LogOutIcon, MenuIcon, SearchIcon, UserIcon } from "lucide-react";
+import { ChevronsUpDownIcon, LogOutIcon, MenuIcon, SearchIcon, ShieldCheckIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -16,6 +16,7 @@ import {
 import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { NotificationBell } from "@/features/notifications/notification-bell";
 import { OfflineBanner } from "@/features/offline/offline-banner";
+import { LicenseBanner } from "@/features/session/license-banner";
 import { clearOfflineData } from "@/features/pwa/pwa";
 import { GlobalSearch } from "@/features/search/global-search";
 import { useCan, useSession } from "@/features/session/session-context";
@@ -99,6 +100,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <UserMenu />
             </div>
           </div>
+          <LicenseBanner />
           <OfflineBanner />
         </header>
 
@@ -240,6 +242,13 @@ function UserMenu() {
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {s.user.platformRole === "SUPER_ADMIN" && (
+          <DropdownMenuItem asChild>
+            <Link href="/admin">
+              <ShieldCheckIcon /> Super admin console
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <Link href="/settings/security">
             <UserIcon /> Account & security

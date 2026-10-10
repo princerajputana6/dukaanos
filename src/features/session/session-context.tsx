@@ -5,8 +5,23 @@ import { apiGet } from "@/lib/api";
 import type { FeatureFlags, Permission } from "@/lib/domain";
 
 export interface MeData {
-  user: { id: string; name: string; mobile: string; email: string | null };
-  membership: { businessId: string; businessName: string; onboardedAt: number | null; roleKey: string; roleName: string; permissions: Permission[] };
+  user: { id: string; name: string; mobile: string; email: string | null; platformRole: string | null };
+  membership: {
+    businessId: string;
+    businessName: string;
+    onboardedAt: number | null;
+    roleKey: string;
+    roleName: string;
+    permissions: Permission[];
+    access: {
+      tenantId: string | null;
+      plan: string | null;
+      licenseStatus: string;
+      validUntil: string | null;
+      writable: boolean;
+      reason: string | null;
+    };
+  };
   businesses: Array<{ id: string; name: string; type: string }>;
   business: { id: string; name: string; type: string; city: string | null; stateCode: string | null; phone: string | null; address: string | null; onboardingStep: number; onboardedAt: number | null };
   settings: {

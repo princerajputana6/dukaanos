@@ -81,6 +81,8 @@ export const requireBusiness: MiddlewareHandler<AppEnv> = async (c, next) => {
     ip: c.get("ip"),
     now: c.get("now"),
     logger: c.get("logger").child({ businessId: m.businessId, userId: session.user.id }),
+    writable: m.access.writable,
+    readOnlyReason: m.access.reason,
   });
   return next();
 };
@@ -111,3 +113,11 @@ export function rateLimit(binding: "AUTH_LIMITER" | "AI_LIMITER", keyOf: "ip" | 
 export function bizRouter() {
   return new Hono<AppEnv>().use("*", requireBusiness);
 }
+
+/** Platform super admin only (the /api/admin console). */
+export const requireSuperAdmin: MiddlewareHandler<AppEnv> = async (c, next) => {
+  const s = c.get("session");
+  if (!s) throw new AppError("UNAUTHENTICATED", "Please log in to continue.");
+  if (s.user.platformRole !== "SUPER_ADMIN") throw new AppError("FORBIDDEN", "Super admin access required.");
+  return next();
+};

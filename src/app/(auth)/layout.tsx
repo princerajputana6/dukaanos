@@ -5,6 +5,7 @@ import { getPageSession } from "@/server/auth/page-session";
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
   const session = await getPageSession();
   if (session?.membership) redirect(session.membership.onboardedAt ? "/dashboard" : "/onboarding");
+  if (session?.user.platformRole === "SUPER_ADMIN") redirect("/admin");
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1fr_minmax(0,560px)]">

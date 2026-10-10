@@ -26,6 +26,7 @@ import { AppError } from "@/server/lib/errors";
 import type { Logger } from "@/server/lib/logger";
 import type { loginSchema, resetPasswordSchema, signupSchema } from "@/schemas/auth";
 import type { Stmt } from "./engine";
+import { newTenantStmts } from "./tenancy";
 
 type SignupData = z.output<typeof signupSchema>;
 type LoginData = z.output<typeof loginSchema>;
@@ -43,12 +44,27 @@ const RESET_TTL_MS = 30 * 60_000;
 /** Statements that create a business with sensible defaults and the creator as owner. */
 export function newBusinessStmts(
   db: Db,
-  opts: { businessId: string; userId: string; name: string; type: string; city: string | null; now: number },
+  opts: {
+    businessId: string;
+    userId: string;
+    name: string;
+    type: string;
+    city: string | null;
+    now: number;
+    tenantId: string;
+    branchCode?: string;
+    stateCode?: string | null;
+    onboarded?: boolean;
+  },
 ): Stmt[] {
   const { businessId, userId, now } = opts;
   return [
     db.insert(businesses).values({
       id: businessId,
+      tenantId: opts.tenantId,
+      branchCode: opts.branchCode ?? "MAIN",
+      stateCode: opts.stateCode ?? null,
+      onboardedAt: opts.onboarded ? now : null,
       name: opts.name,
       type: opts.type,
       city: opts.city,
@@ -77,6 +93,7 @@ export async function signup(db: Db, input: SignupData, meta: RequestMeta) {
   const now = meta.now;
   const userId = newId(now);
   const businessId = newId(now);
+  const tenantId = newId(now);
   const passwordHash = await hashPassword(input.password);
 
   try {
@@ -91,7 +108,9 @@ export async function signup(db: Db, input: SignupData, meta: RequestMeta) {
         createdAt: now,
         updatedAt: now,
       }),
-      ...newBusinessStmts(db, { businessId, userId, name: input.businessName, type: input.businessType, city: input.city, now }),
+      // Self-signup starts a free-trial licence for a new tenant with one shop.
+      ...newTenantStmts(db, { tenantId, name: input.businessName, ownerUserId: userId, plan: "TRIAL", actorUserId: userId, now }),
+      ...newBusinessStmts(db, { businessId, userId, tenantId, name: input.businessName, type: input.businessType, city: input.city, now }),
       db.insert(auditLogs).values({
         id: newId(now),
         businessId,
@@ -147,7 +166,7 @@ export async function login(db: Db, input: LoginData, meta: RequestMeta) {
     ip: meta.ip,
     now: meta.now,
   });
-  return { userId: user.id, businessId: membership?.businessId ?? null, ...session };
+  return { userId: user.id, businessId: membership?.businessId ?? null, platformRole: user.platformRole ?? null, ...session };
 }
 
 /**

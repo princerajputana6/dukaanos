@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, gte, inArray, like, or, sql, type SQL } from "drizzle-orm";
+import { ref } from "@/server/db/sql";
 import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import type { z } from "zod";
 import { parseCsvObjects, toCsv } from "@/lib/csv";
@@ -419,7 +420,7 @@ export async function getProductDetail(ctx: ServiceContext, id: string) {
 
 export async function listCategories(ctx: ServiceContext) {
   return ctx.db
-    .select({ id: productCategories.id, name: productCategories.name, productCount: sql<number>`(select count(*) from products p where p.category_id = ${productCategories.id} and p.is_active = 1)` })
+    .select({ id: productCategories.id, name: productCategories.name, productCount: sql<number>`(select count(*) from products p where p.category_id = ${ref(productCategories.id)} and p.is_active = 1)` })
     .from(productCategories)
     .where(eq(productCategories.businessId, ctx.businessId))
     .orderBy(asc(productCategories.name));

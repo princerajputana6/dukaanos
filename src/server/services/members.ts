@@ -5,7 +5,8 @@ import { newId } from "@/lib/ids";
 import type { Permission } from "@/lib/domain";
 import { hashPassword } from "@/server/auth/password";
 import { deleteUserSessions } from "@/server/auth/session";
-import { businessMembers, rolePermissions, roles, users } from "@/server/db/schema";
+import { businesses, businessMembers, licenses, rolePermissions, roles, users } from "@/server/db/schema";
+import { tenantUserCount } from "./branches";
 import { AppError, notFound } from "@/server/lib/errors";
 import type { addMemberSchema, roleSchema, updateMemberSchema } from "@/schemas/admin";
 import { requirePermission, type ServiceContext } from "./context";
@@ -64,6 +65,23 @@ export async function addMember(ctx: ServiceContext, input: z.output<typeof addM
     stmts.push(
       ctx.db.insert(users).values({ id: userId, name: input.name, mobile: input.mobile, passwordHash: await hashPassword(input.password), createdAt: ctx.now, updatedAt: ctx.now }),
     );
+  }
+  // Licence user limit (counted across all branches of the tenant).
+  const shop = await ctx.db.select({ tenantId: businesses.tenantId }).from(businesses).where(eq(businesses.id, ctx.businessId)).get();
+  if (shop?.tenantId) {
+    const lic = await ctx.db.select().from(licenses).where(eq(licenses.tenantId, shop.tenantId)).get();
+    const used = await tenantUserCount(ctx.db, shop.tenantId);
+    const alreadyInTenant = existing
+      ? await ctx.db
+          .select({ id: businessMembers.id })
+          .from(businessMembers)
+          .innerJoin(businesses, eq(businesses.id, businessMembers.businessId))
+          .where(and(eq(businessMembers.userId, existing.id), eq(businesses.tenantId, shop.tenantId), eq(businessMembers.isActive, true)))
+          .get()
+      : undefined;
+    if (lic && !alreadyInTenant && used >= lic.maxUsers) {
+      throw new AppError("LIMIT_REACHED", `Your plan allows ${lic.maxUsers} users. Remove someone or contact DukaanOS to upgrade.`);
+    }
   }
   const memberId = newId(ctx.now);
   stmts.push(

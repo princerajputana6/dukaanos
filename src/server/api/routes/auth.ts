@@ -22,7 +22,7 @@ export const authRoutes = new Hono<AppEnv>()
     const input = await body(c, loginSchema);
     const res = await auth.login(c.get("db"), input, meta(c));
     c.header("set-cookie", sessionCookie(res.token, res.expiresAt, isHttps(c.req.url)));
-    return ok(c, { userId: res.userId, businessId: res.businessId });
+    return ok(c, { userId: res.userId, businessId: res.businessId, platformRole: res.platformRole });
   })
   .post("/logout", async (c) => {
     const s = c.get("session");

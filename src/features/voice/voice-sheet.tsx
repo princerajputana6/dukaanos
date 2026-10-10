@@ -9,7 +9,7 @@ import { useSession } from "@/features/session/session-context";
 import { errorMessage } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { AssistantTurn } from "./assistant-turn";
-import { pickProvider, SpeechError, type ListeningSession } from "./speech";
+import { pickProvider, SpeechError, startListening, type ListeningSession } from "./speech";
 import { useAssistantApi } from "./use-assistant";
 import { useVoiceStore } from "./voice-store";
 
@@ -44,8 +44,7 @@ export function useVoiceController() {
   );
 
   const listen = React.useCallback(async () => {
-    const provider = pickProvider(me.settings.voiceProvider);
-    if (!provider || !voiceEnabled) {
+    if (!pickProvider(me.settings.voiceProvider) || !voiceEnabled) {
       useVoiceStore.getState().set({ phase: "error", error: voiceEnabled ? "Voice isn't supported on this browser. You can type instead." : "Voice is turned off. You can type instead." });
       return;
     }
@@ -53,15 +52,14 @@ export function useVoiceController() {
     useVoiceStore.getState().set({ phase: "listening", interim: "", level: 0, response: null, error: null });
     navigator.vibrate?.(15);
     try {
-      const sess = provider.transcribe({
+      const sess = startListening(me.settings.voiceProvider, {
         onInterim: (t) => useVoiceStore.getState().set({ interim: t }),
         onLevel: (l) => useVoiceStore.getState().set({ level: l }),
+        onProcessing: () => useVoiceStore.getState().set({ phase: "processing", level: 0 }),
+        // Browser speech can't reach its servers here — keep listening via DukaanOS voice.
+        onFallback: () => useVoiceStore.getState().set({ phase: "listening", interim: "", error: null }),
       });
       session.current = sess;
-      if (provider.id === "server") {
-        // Recording continues until the user taps stop; show processing afterwards.
-        void sess.result.catch(() => undefined);
-      }
       const res = await sess.result;
       session.current = null;
       if (res.kind === "empty") {
@@ -78,7 +76,7 @@ export function useVoiceController() {
           ? err.code === "not-allowed"
             ? "Microphone access is blocked. Allow it in your browser settings, or type instead."
             : err.code === "network"
-              ? "Voice needs internet. Please type instead."
+              ? "Voice recognition can't connect right now. Check your internet, or type instead."
               : "I couldn't hear that. Please try again."
           : errorMessage(err);
       useVoiceStore.getState().set({ phase: "error", error: msg });

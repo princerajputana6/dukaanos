@@ -6,7 +6,9 @@ import { getBusinessBundle } from "@/server/services/business";
 import { csrf, loadSession, requestContext, requireUser } from "./middleware";
 import { ok } from "./respond";
 import { authRoutes } from "./routes/auth";
+import { adminRoutes } from "./routes/admin";
 import { aiRoutes } from "./routes/ai";
+import { branchRoutes } from "./routes/branches";
 import { businessRoutes } from "./routes/business";
 import { auditRoutes, expenseRoutes, notificationRoutes, reportRoutes, searchRoutes, teamRoutes } from "./routes/misc";
 import { customerRoutes, supplierRoutes } from "./routes/parties";
@@ -60,6 +62,8 @@ export function createApp() {
   app.route("/search", searchRoutes);
   app.route("/team", teamRoutes);
   app.route("/ai", aiRoutes);
+  app.route("/branches", branchRoutes);
+  app.route("/admin", adminRoutes);
 
   app.notFound((c) => c.json(toErrorBody(new AppError("NOT_FOUND", "Endpoint not found.")), 404));
   app.onError((err, c) => {

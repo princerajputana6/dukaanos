@@ -24,6 +24,8 @@ export const users = sqliteTable(
     email: text("email"),
     passwordHash: text("password_hash").notNull(),
     isActive: bool("is_active").notNull().default(true),
+    /** Platform-level role: SUPER_ADMIN manages every tenant. NULL for shop users. */
+    platformRole: text("platform_role"),
     lastLoginAt: integer("last_login_at"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -59,8 +61,99 @@ export const passwordResetTokens = sqliteTable(
   (t) => [index("prt_user_idx").on(t.userId)],
 );
 
-export const businesses = sqliteTable("businesses", {
+// ─── Platform: agencies → tenants → shops (businesses) ────────────────────────
+
+/** Resellers / partners who onboard and support shops. */
+export const agencies = sqliteTable("agencies", {
   id: id(),
+  name: text("name").notNull(),
+  contactName: text("contact_name"),
+  phone: text("phone"),
+  email: text("email"),
+  city: text("city"),
+  status: text("status").notNull().default("ACTIVE"),
+  notes: text("notes"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+/** A customer account (the owner's organisation). Owns one or more shops/branches and the licence. */
+export const tenants = sqliteTable(
+  "tenants",
+  {
+    id: id(),
+    name: text("name").notNull(),
+    agencyId: text("agency_id"),
+    ownerUserId: text("owner_user_id").notNull(),
+    status: text("status").notNull().default("ACTIVE"),
+    notes: text("notes"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("tenants_agency_idx").on(t.agencyId), index("tenants_owner_idx").on(t.ownerUserId)],
+);
+
+export const licenses = sqliteTable(
+  "licenses",
+  {
+    id: id(),
+    tenantId: text("tenant_id").notNull(),
+    plan: text("plan").notNull(),
+    status: text("status").notNull(),
+    maxBranches: integer("max_branches").notNull(),
+    maxUsers: integer("max_users").notNull(),
+    /** IST date; null = no end date. */
+    validUntil: text("valid_until"),
+    note: text("note"),
+    updatedBy: text("updated_by"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("licenses_tenant_uq").on(t.tenantId), index("licenses_status_idx").on(t.status, t.validUntil)],
+);
+
+export const licenseEvents = sqliteTable(
+  "license_events",
+  {
+    id: id(),
+    tenantId: text("tenant_id").notNull(),
+    action: text("action").notNull(),
+    beforeData: text("before_data", { mode: "json" }).$type<unknown>(),
+    afterData: text("after_data", { mode: "json" }).$type<unknown>(),
+    note: text("note"),
+    actorUserId: text("actor_user_id"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("le_tenant_created_idx").on(t.tenantId, t.createdAt)],
+);
+
+/** Actions taken in the super admin console. */
+export const platformAuditLogs = sqliteTable(
+  "platform_audit_logs",
+  {
+    id: id(),
+    actorUserId: text("actor_user_id").notNull(),
+    action: text("action").notNull(),
+    targetType: text("target_type").notNull(),
+    targetId: text("target_id"),
+    summary: text("summary").notNull(),
+    data: text("data", { mode: "json" }).$type<unknown>(),
+    ip: text("ip"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("pal_created_idx").on(t.createdAt), index("pal_target_idx").on(t.targetType, t.targetId)],
+);
+
+export const businesses = sqliteTable(
+  "businesses",
+  {
+  id: id(),
+  /** The tenant (owner organisation) this shop/branch belongs to. */
+  tenantId: text("tenant_id"),
+  /** Short code shown to staff/admins, e.g. "MAIN", "BR-2". */
+  branchCode: text("branch_code"),
+  /** ACTIVE | SUSPENDED — a suspended shop is read-only. */
+  status: text("status").notNull().default("ACTIVE"),
   name: text("name").notNull(),
   type: text("type").notNull().default("other"),
   city: text("city"),
@@ -72,7 +165,9 @@ export const businesses = sqliteTable("businesses", {
   createdBy: text("created_by").notNull(),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
-});
+  },
+  (t) => [index("businesses_tenant_idx").on(t.tenantId), index("businesses_status_idx").on(t.status)],
+);
 
 export const roles = sqliteTable(
   "roles",

@@ -7,11 +7,20 @@
 import { api } from "@/lib/api";
 import type { AssistantResponse } from "@/lib/api-types";
 
+/** Stop after this much silence once the user has started speaking. */
+const END_OF_SPEECH_SILENCE_MS = 1_800;
+/** Give up if nothing is said at all. */
+const NO_SPEECH_TIMEOUT_MS = 8_000;
+/** Input level (0..1) above which we treat the signal as speech. */
+const SPEECH_LEVEL = 0.06;
+
 export type SpeechProviderId = "browser" | "server";
 
 export interface TranscribeCallbacks {
   onInterim?: (text: string) => void;
   onLevel?: (level: number) => void;
+  /** Recording finished; audio is being sent for recognition (server engine). */
+  onProcessing?: () => void;
 }
 
 /** Result of one listening session: either text to interpret, or a full server response. */
@@ -90,21 +99,30 @@ export class BrowserSpeechProvider implements SpeechProvider {
     const rec = new Ctor();
     rec.lang = this.lang; // hi-IN recognises Hindi, English and Hinglish well
     rec.interimResults = true;
-    rec.continuous = false;
+    // Continuous mode so a short pause mid-sentence doesn't cut the user off; we stop
+    // ourselves after a real silence (or when the user taps stop).
+    rec.continuous = true;
     rec.maxAlternatives = 1;
     const started = Date.now();
     let finalText = "";
     let interim = "";
     let aborted = false;
+    let silenceTimer: ReturnType<typeof setTimeout> | undefined;
+    const armSilence = (ms: number) => {
+      clearTimeout(silenceTimer);
+      silenceTimer = setTimeout(() => rec.stop(), ms);
+    };
+    armSilence(NO_SPEECH_TIMEOUT_MS);
     const result = new Promise<TranscribeResult>((resolve, reject) => {
       rec.onresult = (e) => {
         interim = "";
         for (let i = e.resultIndex; i < e.results.length; i++) {
           const r = e.results[i]!;
-          if (r.isFinal) finalText += r[0].transcript;
+          if (r.isFinal) finalText += `${r[0].transcript} `;
           else interim += r[0].transcript;
         }
-        cb.onInterim?.((finalText + " " + interim).trim());
+        cb.onInterim?.((finalText + interim).trim());
+        armSilence(END_OF_SPEECH_SILENCE_MS);
       };
       rec.onerror = (e) => {
         if (e.error === "no-speech") return; // handled in onend
@@ -113,16 +131,21 @@ export class BrowserSpeechProvider implements SpeechProvider {
         reject(new SpeechError(code, e.error));
       };
       rec.onend = () => {
+        clearTimeout(silenceTimer);
         if (aborted) return resolve({ kind: "empty" });
-        const text = (finalText || interim).trim();
+        const text = (finalText + interim).trim();
         resolve(text ? { kind: "text", text, language: detect(text), durationMs: Date.now() - started } : { kind: "empty" });
       };
     });
     rec.start();
     return {
-      stop: () => rec.stop(),
+      stop: () => {
+        clearTimeout(silenceTimer);
+        rec.stop();
+      },
       abort: () => {
         aborted = true;
+        clearTimeout(silenceTimer);
         rec.abort();
       },
       result,
@@ -149,9 +172,11 @@ export class ServerSpeechProvider implements SpeechProvider {
     let aborted = false;
     let stopRequested = false;
     let raf = 0;
+    let audioCtx: AudioContext | null = null;
     const chunks: Blob[] = [];
     const cleanup = () => {
       cancelAnimationFrame(raf);
+      void audioCtx?.close().catch(() => undefined);
       stream?.getTracks().forEach((t) => t.stop());
     };
 
@@ -165,32 +190,41 @@ export class ServerSpeechProvider implements SpeechProvider {
         cleanup();
         return { kind: "empty" };
       }
-      // Input level meter for the listening animation.
-      try {
-        const ac = new AudioContext();
-        const analyser = ac.createAnalyser();
-        analyser.fftSize = 256;
-        ac.createMediaStreamSource(stream).connect(analyser);
-        const buf = new Uint8Array(analyser.frequencyBinCount);
-        const tick = () => {
-          analyser.getByteFrequencyData(buf);
-          cb.onLevel?.(buf.reduce((a, b) => a + b, 0) / buf.length / 255);
-          raf = requestAnimationFrame(tick);
-        };
-        tick();
-      } catch {
-        /* level meter is optional */
-      }
       const mime = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"].find((m) => MediaRecorder.isTypeSupported(m));
       recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
       recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
       const done = new Promise<void>((r) => (recorder!.onstop = () => r()));
       recorder.start();
+      // Level meter: drives the listening animation and ends the recording after a pause.
+      try {
+        const ac = new AudioContext();
+        audioCtx = ac;
+        const analyser = ac.createAnalyser();
+        analyser.fftSize = 256;
+        ac.createMediaStreamSource(stream).connect(analyser);
+        const buf = new Uint8Array(analyser.frequencyBinCount);
+        const startedAt = Date.now();
+        let heardAt = 0;
+        const tick = () => {
+          analyser.getByteFrequencyData(buf);
+          const level = buf.reduce((a, b) => a + b, 0) / buf.length / 255;
+          cb.onLevel?.(level);
+          const now = Date.now();
+          if (level > SPEECH_LEVEL) heardAt = now;
+          const silentTooLong = heardAt ? now - heardAt > END_OF_SPEECH_SILENCE_MS : now - startedAt > NO_SPEECH_TIMEOUT_MS;
+          if (silentTooLong && recorder?.state === "recording") recorder.stop();
+          else raf = requestAnimationFrame(tick);
+        };
+        tick();
+      } catch {
+        /* level meter is optional — the user taps stop instead */
+      }
       const timer = setTimeout(() => recorder?.state === "recording" && recorder.stop(), MAX_RECORDING_MS);
       await done;
       clearTimeout(timer);
       cleanup();
       if (aborted || chunks.length === 0) return { kind: "empty" };
+      cb.onProcessing?.();
       const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
       if (blob.size < 2000) return { kind: "empty" };
       const form = new FormData();
@@ -214,11 +248,65 @@ export class ServerSpeechProvider implements SpeechProvider {
   }
 }
 
-/** Picks a provider from the user's setting ("auto" prefers the browser engine). */
+const BROWSER_STT_BROKEN_KEY = "dukaan:browser-stt-broken-until";
+
+/**
+ * The browser engine (Chrome's Web Speech API) streams audio to Google. In Brave, some
+ * Edge/Android builds, behind VPNs or firewalls it fails with a "network" error. When that
+ * happens we remember it on this device for a week and use DukaanOS server speech instead.
+ */
+function browserSttBroken(): boolean {
+  try {
+    return Number(localStorage.getItem(BROWSER_STT_BROKEN_KEY) ?? 0) > Date.now();
+  } catch {
+    return false;
+  }
+}
+function markBrowserSttBroken() {
+  try {
+    localStorage.setItem(BROWSER_STT_BROKEN_KEY, String(Date.now() + 7 * 86_400_000));
+  } catch {
+    /* storage unavailable — we'll just fall back again next time */
+  }
+}
+
+/** Picks a provider from the user's setting ("auto" prefers the browser engine when it works here). */
 export function pickProvider(pref: string): SpeechProvider | null {
   const browser = new BrowserSpeechProvider();
   const server = new ServerSpeechProvider();
   if (pref === "server") return server.isSupported() ? server : browser.isSupported() ? browser : null;
   if (pref === "browser") return browser.isSupported() ? browser : server.isSupported() ? server : null;
+  if (browserSttBroken() && server.isSupported()) return server;
   return browser.isSupported() ? browser : server.isSupported() ? server : null;
+}
+
+/**
+ * Starts listening with the preferred engine. If the browser engine fails for network /
+ * service reasons, transparently retries with server speech recognition (same callbacks),
+ * so the user just keeps talking.
+ */
+export function startListening(pref: string, cb: TranscribeCallbacks & { onFallback?: () => void }): ListeningSession & { provider: SpeechProviderId } {
+  const first = pickProvider(pref);
+  if (!first) throw new SpeechError("unsupported", "Voice isn't supported in this browser.");
+  let current = first.transcribe(cb);
+  let aborted = false;
+  const handle = {
+    provider: first.id as SpeechProviderId,
+    stop: () => current.stop(),
+    abort: () => {
+      aborted = true;
+      current.abort();
+    },
+    result: current.result.catch((err: unknown) => {
+      const server = new ServerSpeechProvider();
+      const recoverable = err instanceof SpeechError && (err.code === "network" || err.code === "failed");
+      if (first.id !== "browser" || !recoverable || !server.isSupported() || aborted) throw err;
+      markBrowserSttBroken();
+      cb.onFallback?.();
+      handle.provider = "server";
+      current = server.transcribe(cb);
+      return current.result;
+    }),
+  };
+  return handle;
 }
