@@ -29,6 +29,13 @@
       "when": 1791317711781,
       "tag": "0003_platform_tenants_licensing",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791663325665,
+      "tag": "0004_voice_preferences",
+      "breakpoints": true
     }
   ]
 }
