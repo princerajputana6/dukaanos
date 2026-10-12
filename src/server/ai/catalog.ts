@@ -16,6 +16,7 @@ import {
   saleItems,
   sales,
   suppliers,
+  voicePreferences,
 } from "@/server/db/schema";
 import type { ServiceContext } from "@/server/services/context";
 import { rankCandidates, type MatchCandidate } from "./matching";
@@ -39,11 +40,13 @@ export interface Catalog {
   customers: MatchCandidate<{ id: string; name: string; balancePaise: number; phone: string | null }>[];
   suppliers: MatchCandidate<{ id: string; name: string; balancePaise: number }>[];
   expenseCategories: Array<{ id: string; name: string }>;
+  /** Learned meaning of ambiguous spoken words: normalised query → product id. */
+  preferences: Map<string, string>;
 }
 
 export async function loadCatalog(ctx: ServiceContext): Promise<Catalog> {
   const since = addDays(todayIst(ctx.now), -30);
-  const [biz, prods, aliases, units, popularity, custs, supps, cats] = await Promise.all([
+  const [biz, prods, aliases, units, popularity, custs, supps, cats, prefs] = await Promise.all([
     ctx.db.select({ type: businesses.type }).from(businesses).where(eq(businesses.id, ctx.businessId)).get(),
     ctx.db
       .select({
@@ -78,6 +81,7 @@ export async function loadCatalog(ctx: ServiceContext): Promise<Catalog> {
       .where(and(eq(suppliers.businessId, ctx.businessId), eq(suppliers.isActive, true)))
       .limit(2000),
     ctx.db.select({ id: expenseCategories.id, name: expenseCategories.name }).from(expenseCategories).where(eq(expenseCategories.businessId, ctx.businessId)),
+    ctx.db.select({ q: voicePreferences.queryNorm, productId: voicePreferences.productId }).from(voicePreferences).where(eq(voicePreferences.businessId, ctx.businessId)),
   ]);
   const aliasBy = new Map<string, string[]>();
   for (const a of aliases) aliasBy.set(a.productId, [...(aliasBy.get(a.productId) ?? []), a.alias]);
@@ -90,6 +94,7 @@ export async function loadCatalog(ctx: ServiceContext): Promise<Catalog> {
     customers: custs.map((c) => ({ value: { id: c.id, name: c.name, balancePaise: c.balancePaise, phone: c.phone }, name: c.name, aliases: c.phone ? [c.phone] : [], popularity: c.lastTxnAt ?? 0 })),
     suppliers: supps.map((s) => ({ value: { id: s.id, name: s.name, balancePaise: s.balancePaise }, name: s.name, aliases: s.company ? [s.company] : [] })),
     expenseCategories: cats,
+    preferences: new Map(prefs.map((p) => [p.q, p.productId])),
   };
 }
 
@@ -161,4 +166,17 @@ export function promptContextFor(input: string, catalog: Catalog, turns: RecentT
 
 export function normalizedEquals(a: string, b: string) {
   return normalizeText(a) === normalizeText(b);
+}
+
+/** Remembers what the shop meant by an ambiguous word ("coke" → Coke 500ml). */
+export async function rememberPreference(ctx: ServiceContext, query: string, productId: string) {
+  const q = normalizeText(query);
+  if (!q) return;
+  await ctx.db
+    .insert(voicePreferences)
+    .values({ businessId: ctx.businessId, queryNorm: q, productId, uses: 1, lastUsedAt: ctx.now })
+    .onConflictDoUpdate({
+      target: [voicePreferences.businessId, voicePreferences.queryNorm],
+      set: { productId, uses: sql`case when ${voicePreferences.productId} = ${productId} then ${voicePreferences.uses} + 1 else 1 end`, lastUsedAt: ctx.now },
+    });
 }

@@ -14,8 +14,12 @@ purchases, expenses and GST-ready reports.
 
 - **Voice → understand → confirm → execute → record.** The AI only proposes; the server
   validates and executes through the transaction engine. Nothing changes without a tap.
-- **Never guesses.** Ambiguous products or customers ("Coke" → 250ml / 500ml / 750ml) always
-  come back as a question. Unknown products are reported, never invented.
+- **Picks smartly, never silently.** An ambiguous word ("Coke" → 250ml / 500ml / 750ml) is
+  auto-picked when the choice is clear — the shop's learned usual, the only variant in stock, or a
+  clear best-seller — and the confirmation card shows the pick with one-tap alternatives. Otherwise
+  it asks. Unknown products are reported, never invented.
+- **Hands-free listening.** Recording stops by itself when the shopkeeper stops talking (adaptive
+  to shop noise), and falls back to server speech recognition if the browser's engine is offline.
 - **Hinglish-first parsing.** A deterministic rules parser handles everyday phrases instantly
   and for free; Workers AI (Llama 3.3) handles the rest via a strict JSON contract.
 - **Correct money.** Integer paise, GST-inclusive/exclusive pricing, CGST/SGST/IGST, bill
@@ -65,7 +69,7 @@ Demo logins (local only): **99999 00000 / admin12345** (super admin → `/admin`
 | `pnpm dev` | Dev server (workerd, local D1/R2) on port 3100 |
 | `pnpm build` / `pnpm start` | Production build / run it locally with Wrangler |
 | `pnpm typecheck` · `pnpm lint` | TypeScript strict · ESLint |
-| `pnpm test` | Unit + integration tests (120) |
+| `pnpm test` | Unit + integration tests |
 | `pnpm test:e2e` | Playwright E2E (build first) |
 | `pnpm check` | typecheck + lint + test + build |
 | `pnpm db:generate` | Generate a migration from `src/server/db/schema.ts` |

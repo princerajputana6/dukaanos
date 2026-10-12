@@ -18,7 +18,7 @@ export function useAssistantApi() {
       api<AssistantResponse>("/ai/interpret", { method: "POST", body: { text, ...(voice ? { voice } : {}) } }),
     [],
   );
-  const clarify = useCallback((id: string, choice: { optionId?: string; text?: string }) => api<AssistantResponse>(`/ai/interactions/${id}/clarify`, { method: "POST", body: choice }), []);
+  const clarify = useCallback((id: string, choice: { optionId?: string; text?: string; slot?: string }) => api<AssistantResponse>(`/ai/interactions/${id}/clarify`, { method: "POST", body: choice }), []);
   const confirm = useCallback(
     async (id: string) => {
       const r = await api<AssistantResponse>(`/ai/interactions/${id}/confirm`, { method: "POST" });

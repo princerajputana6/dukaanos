@@ -9,5 +9,5 @@ export const interpretSchema = z.object({
 });
 
 export const clarifySchema = z
-  .object({ optionId: z.string().max(64).optional(), text: z.string().trim().max(40).optional() })
+  .object({ optionId: z.string().max(64).optional(), text: z.string().trim().max(40).optional(), slot: z.string().max(20).optional() })
   .refine((v) => v.optionId || v.text, "Choose an option");

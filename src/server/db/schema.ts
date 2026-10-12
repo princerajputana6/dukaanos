@@ -837,3 +837,16 @@ export const appEvents = sqliteTable(
   },
   (t) => [index("events_business_created_idx").on(t.businessId, t.createdAt)],
 );
+
+/** What a shop means by an ambiguous spoken word ("coke" → Coke 500ml), learned from choices. */
+export const voicePreferences = sqliteTable(
+  "voice_preferences",
+  {
+    businessId: businessId(),
+    queryNorm: text("query_norm").notNull(),
+    productId: text("product_id").notNull(),
+    uses: integer("uses").notNull().default(1),
+    lastUsedAt: integer("last_used_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.businessId, t.queryNorm] })],
+);

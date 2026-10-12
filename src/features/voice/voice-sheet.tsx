@@ -121,7 +121,7 @@ export function useVoiceController() {
           throw err;
         }
       }),
-    onClarify: (choice: { optionId?: string; text?: string }) =>
+    onClarify: (choice: { optionId?: string; text?: string; slot?: string }) =>
       run("clarify", async () => {
         if (!response) return;
         const r = await apiFns.clarify(response.interactionId, choice);

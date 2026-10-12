@@ -17,12 +17,13 @@ type Lang = ParsedIntent["language"];
 // ─── Vocabulary (Latin; Devanagari input is transliterated first) ────────────
 
 const SALE_VERBS = new Set([
+  "bik", "bikta", "bikti", "bikte", "becho", "bechna", "becha",
   "biki", "bika", "bike", "bikey", "bikee", "bech", "bechi", "becha", "beche", "bechdi", "bechiya", "nikli", "nikla", "nikle", "sold", "sell", "sale", "sales", "bechne", "bikri",
 ]);
 const PURCHASE_VERBS = new Set([
   "aayi", "aaya", "aaye", "aai", "aae", "ayi", "aya", "aye", "ai", "kharida", "kharidi", "kharide", "kharidaa", "purchase", "purchased", "bought", "mangaya", "mangayi", "mangaye", "liya", "liye", "li", "stock",
 ]);
-const PAYMENT_VERBS = new Set(["diye", "diya", "di", "paid", "pay", "payment", "jama", "mile", "mila", "mili", "received", "chukaya", "chukaye", "lautaye", "lautaya", "bheje", "bheja"]);
+const PAYMENT_VERBS = new Set(["diye", "die", "diya", "di", "paid", "pay", "payment", "jama", "mile", "mila", "mili", "received", "chukaya", "chukaye", "lautaye", "lautaya", "bheje", "bheja"]);
 const CREDIT_WORDS = new Set(["udhaar", "udhar", "udhari", "udhaari", "credit", "khata", "khate", "baki", "baaki"]);
 const EXPENSE_WORDS = new Set(["kharcha", "kharch", "kharche", "expense", "expenses", "spent", "bill"]);
 const EXPENSE_CATEGORIES: Record<string, string> = {
@@ -73,12 +74,58 @@ const NUMBER_WORDS: Record<string, number> = {
   ek: 1, one: 1, do: 2, two: 2, teen: 3, three: 3, char: 4, chaar: 4, four: 4, paanch: 5, panch: 5, five: 5,
   chhe: 6, chhah: 6, che: 6, six: 6, saat: 7, seven: 7, aath: 8, eight: 8, nau: 9, nine: 9, das: 10, ten: 10,
   gyarah: 11, eleven: 11, barah: 12, baarah: 12, twelve: 12, terah: 13, chaudah: 14, pandrah: 15, fifteen: 15, solah: 16, satrah: 17, atharah: 18, unnis: 19, unnees: 19,
-  bees: 20, bis: 20, twenty: 20, pachees: 25, pachchis: 25, tees: 30, thirty: 30, chalees: 40, chalis: 40, forty: 40, pachas: 50, pachaas: 50, fifty: 50,
+  tin: 3, bees: 20, bis: 20, twenty: 20, pachees: 25, pachchis: 25, tees: 30, thirty: 30, chalees: 40, chalis: 40, forty: 40, pachas: 50, pachaas: 50, fifty: 50,
   sattar: 70, assi: 80, nabbe: 90, dhai: 2.5, dhaai: 2.5, dedh: 1.5, derh: 1.5, aadha: 0.5, adha: 0.5, aadhi: 0.5, half: 0.5,
 };
 const MULTIPLIERS: Record<string, number> = { sau: 100, hundred: 100, hazaar: 1000, hazar: 1000, hajar: 1000, thousand: 1000, k: 1000, lakh: 100000, lac: 100000 };
 /** "do" is also the verb "give" ("likh do", "de do") — only a number before a noun-ish word. */
 const VERBISH_BEFORE_DO = new Set(["likh", "de", "bata", "kar", "hata", "bech", "dal", "daal", "rakh", "jod", "bhej", "chhod", "mita"]);
+
+/**
+ * Speech engines spell Hindi differently: Whisper writes Devanagari ("बिकी"), which we
+ * transliterate to "bikee", while users type "biki". Map any word that differs from a known
+ * command word only in long vowels (ee/i, oo/u, aa/a) to that known spelling. Product names
+ * are not in this vocabulary, so they pass through unchanged.
+ */
+const vowelCanon = (w: string) =>
+  w
+    .replace(/ph/g, "f")
+    .replace(/ck/g, "k")
+    .replace(/ee/g, "i")
+    .replace(/oo/g, "u")
+    .replace(/aa/g, "a")
+    .replace(/ii/g, "i")
+    .replace(/uu/g, "u")
+    // Hindi drops the inherent "a" mid-word: कितनी → "kitanee" → "kitni", बिजली → "bijli".
+    .replace(/([^aeiou])a(?=[^aeiou][aeiou])/g, "$1");
+const EXTRA_VOCAB = [
+  "aaj", "kal", "ne", "ka", "ki", "ke", "ko", "se", "par", "pe", "rupaye", "rupees", "month", "mahine", "mahina", "hafte", "hafta", "week", "din",
+  "sale", "bill", "entry", "purchase", "set", "badha", "badhao", "ghata", "ghatao", "product", "products", "saman", "samaan", "item", "items",
+  "cheez", "galla", "collection", "kamaya", "naam", "name", "number", "mobile", "phone", "bik", "beche", "bechi", "becha", "becho", "bechna",
+];
+/** Phonetic spellings of English words as Hindi speech engines write them (सेल → "sel"). */
+const SPELLINGS: Record<string, string> = { sel: "sale", sels: "sales", stok: "stock", profit: "profit", prophit: "profit", rupye: "rupaye", rupaya: "rupaye" };
+const VOCAB: ReadonlySet<string> = new Set([
+  ...SALE_VERBS, ...PURCHASE_VERBS, ...PAYMENT_VERBS, ...CREDIT_WORDS, ...EXPENSE_WORDS, ...Object.keys(EXPENSE_CATEGORIES), ...DAMAGE_WORDS,
+  ...RETURN_WORDS, ...UNDO_WORDS, ...LAST_WORDS, ...QUESTION_WORDS, ...STOCK_WORDS, ...PROFIT_WORDS, ...LOW_WORDS, ...OUTSTANDING_WORDS,
+  ...SUMMARY_WORDS, ...SEARCH_WORDS, ...NEW_WORDS, ...CUSTOMER_WORDS, ...SUPPLIER_WORDS, ...UPI_WORDS, ...CARD_WORDS, ...CASH_WORDS,
+  ...CONJUNCTIONS, ...Object.keys(UNITS), ...FILLERS, ...Object.keys(NUMBER_WORDS), ...Object.keys(MULTIPLIERS), ...EXTRA_VOCAB,
+]);
+const CANON_INDEX = new Map<string, string>();
+for (const w of VOCAB) if (!CANON_INDEX.has(vowelCanon(w))) CANON_INDEX.set(vowelCanon(w), w);
+
+/** True when a (normalised) token is a command/filler word rather than a possible product word. */
+export function isCommandWord(t: string): boolean {
+  return VOCAB.has(vocabWord(t));
+}
+
+/** Known command word for a token, tolerant of long-vowel spellings; otherwise the token itself. */
+export function vocabWord(t: string): string {
+  if (SPELLINGS[t]) return SPELLINGS[t];
+  if (VOCAB.has(t) || t.length < 3 || /^\d/.test(t)) return t;
+  const c = vowelCanon(t);
+  return SPELLINGS[c] ?? CANON_INDEX.get(c) ?? t;
+}
 
 interface Tok {
   t: string;
@@ -255,10 +302,11 @@ export function parseWithRules(input: string): ParsedIntent {
   const raw = input.trim().slice(0, 500);
   const pre = preprocess(raw);
   const norm = normalizeText(pre).replace(/\s+\?\s*/g, " ? ");
-  const words = norm.split(" ").filter(Boolean);
+  const rawWords = norm.split(" ").filter(Boolean);
+  const words = rawWords.map(vocabWord);
   // Original (non-lowercased, transliterated) words — for display of names/products.
   const translit = transliterate(pre);
-  const originalWords = words.map((w) => restoreCase(w, translit));
+  const originalWords = rawWords.map((w) => restoreCase(w, translit));
   const tokens: Tok[] = words.map((t, i) => ({ t, i }));
   const ts = words;
   const language = detectLanguage(raw, ts);
@@ -324,7 +372,10 @@ export function parseWithRules(input: string): ParsedIntent {
 
   // ── Expenses ────────────────────────────────────────────────────────────
   const categoryToken = ts.find((t) => EXPENSE_CATEGORIES[t] !== undefined);
-  if ((hasAny(ts, EXPENSE_WORDS) || categoryToken) && !hasAny(ts, SALE_VERBS) && !ts.includes("ne")) {
+  const moneyWord = ts.some((t) => ["rupaye", "rupay", "rupees", "rs", "rupee", "rupiya", "rupya"].includes(t));
+  // "chai", "paani" alone are as likely to be products ("do paani ki bottle") as expenses.
+  const expenseCategory = categoryToken && (EXPENSE_CATEGORIES[categoryToken] !== "Other" || hasAny(ts, EXPENSE_WORDS) || moneyWord);
+  if ((hasAny(ts, EXPENSE_WORDS) || expenseCategory) && !hasAny(ts, SALE_VERBS) && !ts.includes("ne")) {
     const amount = extractAmount(tokens);
     const category = categoryToken ? EXPENSE_CATEGORIES[categoryToken]! : null;
     if (amount || category) {
@@ -427,6 +478,22 @@ export function parseWithRules(input: string): ParsedIntent {
     const items = extractItems(tokens, originalWords, new Set(["stock"]));
     const q = items.find((i) => i.query)?.query ?? null;
     if (q) return result("CHECK_STOCK", 0.8, language, { items: [{ query: q, quantity: null, unit: null, price_rupees: null }] });
+  }
+
+  // ── Implicit sale: "Two water bottle", "3 Maggi" ────────────────────────
+  // At a shop counter a bare "quantity + product" means it was sold. Still a proposal.
+  if (!hasAny(ts, QUESTION_WORDS) && !ts.includes("?")) {
+    const items = extractItems(tokens, originalWords, new Set()).map((i) => {
+      // "water bottle" → product "water", unit bottle.
+      const words = i.query?.split(" ") ?? [];
+      const last = words.at(-1)?.toLowerCase();
+      if (!i.unit && words.length > 1 && last && UNITS[vocabWord(last)]) return { ...i, query: words.slice(0, -1).join(" "), unit: UNITS[vocabWord(last)]! };
+      return i;
+    });
+    // Large bare numbers ("Ramesh 500") are more likely money than a quantity.
+    if (items.length && items.every((i) => i.query && i.quantity && (i.unit || i.quantity <= 100))) {
+      return result("CREATE_SALE", 0.9, language, { items, customer: null, payment_method: creditWord ? "CREDIT" : paymentMethod(ts), date });
+    }
   }
 
   return result("UNKNOWN", 0.2, language, {});

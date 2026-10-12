@@ -23,7 +23,7 @@ import { createCustomerSchema, createSupplierSchema, customerCreditSchema, party
 import { adjustStockSchema } from "@/schemas/inventory";
 import { createExpenseSchema } from "@/schemas/expenses";
 import { createPurchaseSchema, createSaleSchema } from "@/schemas/sales";
-import { latestRefs, loadCatalog, promptContextFor, recentTurns, type ConversationRefs } from "./catalog";
+import { latestRefs, loadCatalog, promptContextFor, recentTurns, rememberPreference, type ConversationRefs } from "./catalog";
 import { MUTATING_INTENTS, parsedIntentSchema, type ParsedIntent } from "./contract";
 import { WorkersAIParser } from "./llm-parser";
 import { plan, type Answer, type ClarifyOption, type Proposal, type ProposalView } from "./planner";
@@ -105,7 +105,7 @@ export async function interpret(ctx: ServiceContext, input: { text: string; voic
   }
 
   const id = newId(ctx.now);
-  const outcome = await plan(ctx, catalog, { parsed, resolutions: {}, followUp: stored.followUp });
+  const outcome = await plan(ctx, catalog, { parsed, resolutions: {}, followUp: stored.followUp, text });
   stored.refs = outcome.refs;
   stored.contextNote = outcome.contextNote;
   await insertInteraction(ctx, { id, input: text, voiceCommandId: input.voiceCommandId ?? null, parser, model, parsed, stored, latencyMs: Date.now() - started, ...outcomeFields(outcome.result, ctx.now) });
@@ -113,27 +113,44 @@ export async function interpret(ctx: ServiceContext, input: { text: string; voic
 }
 
 /** Answers a clarification ("Which Coke?") with an option id or free text (number/amount). */
-export async function clarify(ctx: ServiceContext, interactionId: string, choice: { optionId?: string; text?: string }): Promise<AssistantResponse> {
+/**
+ * Answers a clarification ("Which Coke?") with an option id or free text (number/amount), or —
+ * on a proposal — switches an automatically picked product to one of its alternatives.
+ */
+export async function clarify(ctx: ServiceContext, interactionId: string, choice: { optionId?: string; text?: string; slot?: string }): Promise<AssistantResponse> {
   const row = await getOwnRow(ctx, interactionId);
-  if (row.status !== "NEEDS_CLARIFICATION") throw new AppError("CONFLICT", "This question was already answered.");
+  if (row.status !== "NEEDS_CLARIFICATION" && row.status !== "PROPOSED") throw new AppError("CONFLICT", "This request was already completed.");
   if (row.expiresAt && row.expiresAt < ctx.now) {
     await ctx.db.update(aiInteractions).set({ status: "EXPIRED", updatedAt: ctx.now }).where(eq(aiInteractions.id, row.id));
     throw new AppError("INTERACTION_EXPIRED", "This request expired. Please say it again.");
   }
-  const clar = row.clarificationJson as { slot: string; options: ClarifyOption[]; allowText?: "number" | "amount" };
+  let slot: string;
   let value: string | null = null;
-  if (choice.optionId && clar.options.some((o) => o.id === choice.optionId)) value = choice.optionId;
-  else if (choice.text && clar.allowText) {
-    const n = Number(choice.text.replace(/[₹,\s]/g, "").replace(/rs\.?/i, ""));
-    if (Number.isFinite(n) && n > 0 && n < 10_000_000) value = String(n);
+  if (row.status === "PROPOSED") {
+    const pick = (row.proposalJson as Proposal | null)?.view.autoPicks?.find((a) => a.slot === choice.slot);
+    if (!pick) throw new AppError("VALIDATION_ERROR", "Nothing to change here.");
+    slot = pick.slot;
+    if (choice.optionId && pick.options.some((o) => o.id === choice.optionId)) value = choice.optionId;
+  } else {
+    const clar = row.clarificationJson as { slot: string; options: ClarifyOption[]; allowText?: "number" | "amount" };
+    slot = clar.slot;
+    if (choice.optionId && clar.options.some((o) => o.id === choice.optionId)) value = choice.optionId;
+    else if (choice.text && clar.allowText) {
+      const n = Number(choice.text.replace(/[₹,\s]/g, "").replace(/rs\.?/i, ""));
+      if (Number.isFinite(n) && n > 0 && n < 10_000_000) value = String(n);
+    }
   }
   if (!value) throw new AppError("VALIDATION_ERROR", "Please choose one of the options.");
 
   const stored = row.contextJson as StoredContext;
-  stored.resolutions = { ...stored.resolutions, [clar.slot]: value };
+  stored.resolutions = { ...stored.resolutions, [slot]: value };
   const parsed = parsedIntentSchema.parse(row.parsedJson);
+  // Learn what this shop means by the word ("coke" → Coke 500ml) for next time.
+  const itemIdx = slot.startsWith("item:") ? Number(slot.slice(5)) : -1;
+  const spoken = itemIdx >= 0 ? parsed.entities.items?.[itemIdx]?.query : null;
+  if (spoken) await rememberPreference(ctx, spoken, value).catch(() => undefined);
   const catalog = await loadCatalog(ctx);
-  const outcome = await plan(ctx, catalog, { parsed, resolutions: stored.resolutions, followUp: stored.followUp });
+  const outcome = await plan(ctx, catalog, { parsed, resolutions: stored.resolutions, followUp: stored.followUp, text: row.inputText });
   stored.refs = outcome.refs;
   stored.contextNote = outcome.contextNote ?? stored.contextNote;
   const fields = outcomeFields(outcome.result, ctx.now);
@@ -269,6 +286,8 @@ export async function confirm(ctx: ServiceContext, interactionId: string): Promi
     }
     throw err;
   }
+  // Confirming an automatic pick teaches it as this shop's usual meaning of the word.
+  for (const a of proposal.view.autoPicks ?? []) await rememberPreference(ctx, a.query, a.chosenId).catch(() => undefined);
   await ctx.db
     .update(aiInteractions)
     .set({ status: "CONFIRMED", resultType: result.type, resultId: result.id, responseText: message, updatedAt: ctx.now })

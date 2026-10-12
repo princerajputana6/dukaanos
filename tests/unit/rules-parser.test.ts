@@ -125,3 +125,50 @@ describe("rules parser — questions", () => {
     expect(p("asdf qwerty").intent).toBe("UNKNOWN");
   });
 });
+
+describe("rules parser — Devanagari transcripts (server speech / Whisper)", () => {
+  const p2 = (s: string) => parseWithRules(s);
+  it.each([
+    ["आज 20 कोक बिकी।", "CREATE_SALE"],
+    ["आज बीस कोक और दस स्प्राइट बिकी", "CREATE_SALE"],
+    ["रमेश ने 500 रुपये दिए", "CREATE_PAYMENT"],
+    ["रमेश का 850 उधार लिख दो", "CREATE_CREDIT"],
+    ["कोक कितनी बची है?", "CHECK_STOCK"],
+    ["आज कितनी सेल हुई?", "CHECK_SALES"],
+    ["इस महीने का मुनाफा कितना है?", "CHECK_PROFIT"],
+    ["बिजली का बिल 1200 दिया", "CREATE_EXPENSE"],
+    ["शर्मा से 3 क्रेट कोक आई", "CREATE_PURCHASE"],
+  ])("%s → %s", (text, intent) => {
+    expect(p2(text).intent).toBe(intent);
+  });
+
+  it("keeps the product and quantity", () => {
+    const r = p2("आज बीस कोक और दस स्प्राइट बिकी");
+    expect(r.entities.items?.map((i) => i.quantity)).toEqual([20, 10]);
+    expect(r.entities.items?.every((i) => i.query)).toBe(true);
+    expect(p2("रमेश ने 500 रुपये दिए").entities).toMatchObject({ amount_rupees: 500, direction: "received" });
+  });
+
+  it("does not rewrite product names into command words", () => {
+    const r = p2("5 dal biki");
+    expect(r.entities.items?.[0]?.query).toBe("dal");
+  });
+
+  it("treats a bare 'quantity + product' as a sale", () => {
+    for (const [text, query] of [["Two water bottle.", "water"], ["do pani ki bottle", "pani"], ["दो पानी की बोतल", "paanee"], ["3 Maggi", "Maggi"]] as const) {
+      const r = p2(text);
+      expect(r.intent, text).toBe("CREATE_SALE");
+      expect(r.confidence).toBeGreaterThanOrEqual(0.9);
+      expect(r.entities.items?.[0]).toMatchObject({ query, quantity: Number(text.match(/\d/)?.[0] ?? 2) || 2 });
+    }
+    expect(p2("Two water bottle.").entities.items?.[0]?.unit).toBe("bottle");
+  });
+
+  it("does not turn questions, money or expenses into implicit sales", () => {
+    expect(p2("coke kitni hai").intent).toBe("CHECK_STOCK");
+    expect(p2("Ramesh 500").intent).not.toBe("CREATE_SALE");
+    expect(p2("bijli 500").intent).toBe("CREATE_EXPENSE");
+    expect(p2("chai 20 rupaye").intent).toBe("CREATE_EXPENSE");
+  });
+});
+

@@ -13,7 +13,7 @@ interface TurnHandlers {
   onConfirm: () => void;
   onCancel: () => void;
   onEdit: () => void;
-  onClarify: (choice: { optionId?: string; text?: string }) => void;
+  onClarify: (choice: { optionId?: string; text?: string; slot?: string }) => void;
   busy: "confirm" | "clarify" | "cancel" | null;
 }
 
@@ -76,6 +76,28 @@ function ConfirmationCard({ response, handlers }: { response: AssistantResponse;
             ))}
           </dl>
         )}
+        {v.autoPicks?.map((a) => (
+          <div key={a.slot} className="rounded-xl border border-dashed px-3 py-2.5 text-[13px]">
+            <p>
+              Picked <strong>{a.chosenName}</strong> for “{a.query}” <span className="text-muted-foreground">({a.reason})</span>
+            </p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5" role="group" aria-label={`Other matches for ${a.query}`}>
+              {a.options
+                .filter((o) => o.id !== a.chosenId)
+                .map((o) => (
+                  <button
+                    key={o.id}
+                    type="button"
+                    disabled={handlers.busy !== null}
+                    onClick={() => handlers.onClarify({ slot: a.slot, optionId: o.id })}
+                    className="h-9 rounded-full border bg-background px-3 text-[12.5px] font-medium hover:border-primary hover:bg-primary-soft disabled:opacity-50"
+                  >
+                    {o.label}
+                  </button>
+                ))}
+            </div>
+          </div>
+        ))}
         {v.stockImpact.length > 0 && (
           <div className="rounded-xl bg-muted/60 p-3">
             <p className="mb-1.5 text-[12px] font-semibold tracking-wide text-muted-foreground uppercase">Stock impact</p>

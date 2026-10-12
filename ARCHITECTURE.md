@@ -251,6 +251,7 @@ enums as `TEXT` validated by zod.
 |---|---|
 | `voice_commands` | id, business_id, user_id, transcript, language, stt_provider, duration_ms |
 | `ai_interactions` | id, business_id, user_id, voice_command_id, input_text, parser, model, intent, confidence, language, parsed_json, proposal_json, clarification_json, context_json, status (ANSWERED/NEEDS_CLARIFICATION/PROPOSED/CONFIRMED/CANCELLED/EXPIRED/FAILED), response_text, result_type/id, latency_ms, error_code, expires_at |
+| `voice_preferences` | (business_id, query_norm) PK, product_id, uses, last_used_at — learned meaning of ambiguous spoken words |
 | `audit_logs` | id, business_id, user_id, action, entity_type, entity_id, before_data, after_data, source (WEB/VOICE/IMPORT/SYSTEM), request_id, ip, created_at |
 | `notifications` | id, business_id, user_id (NULL = everyone), type (LOW_STOCK/OUTSTANDING_REMINDER/DAILY_SUMMARY/SYSTEM), title, body, link, dedupe_key, read_at |
 | `daily_summaries` | (business_id, date) PK — snapshot sent with the daily-summary notification |
@@ -288,7 +289,10 @@ text  ─────────────────▶ POST /api/ai/interp
   4. EntityResolver        exact (name/sku/barcode) → alias → fuzzy (token + trigram +
                            phonetic key incl. Devanagari transliteration)
                            · 0 matches → clarification "which product?" / offer to create
-                           · >1 plausible → clarification with options (never guess)
+                           · >1 plausible → auto-pick if the choice is clear (learned
+                             preference → only variant in stock (sales) → best-seller ≥60%
+                             of 30-day sales), shown on the card with one-tap alternatives;
+                             otherwise clarification with options
   5. Rule validation       stock, permission, customer required for credit, amounts > 0
   6. Build Proposal        exact command payload + preview computed by the SAME pricing
                            service (totals, GST, stock impact) · stored in ai_interactions
@@ -298,7 +302,9 @@ text  ─────────────────▶ POST /api/ai/interp
 POST /api/ai/interactions/:id/confirm
   → loads the STORED proposal (client cannot alter it) → transaction engine with
     source = VOICE and Idempotency-Key = interaction id → audit log → result
-POST /api/ai/interactions/:id/clarify { optionId } → re-runs steps 4–7 with the choice
+POST /api/ai/interactions/:id/clarify { optionId, slot? } → re-runs steps 4–7 with the choice
+  (with `slot`, also allowed on a PROPOSED interaction to switch an auto-picked product;
+  only slots listed in the stored proposal's autoPicks are accepted)
 ```
 
 ### Confidence policy
@@ -308,6 +314,14 @@ POST /api/ai/interactions/:id/clarify { optionId } → re-runs steps 4–7 with 
 | 0.70 – 0.89 | Prepare proposal, flagged "please check" |
 | < 0.70 | Ask clarification; no proposal |
 | any mutation | **Always** requires confirmation (sale, purchase, adjustment, credit, payment, expense, reversal) |
+
+### Learned preferences & hands-free capture
+`voice_preferences (business_id, query_norm) → product_id, uses` records what a shop means by
+an ambiguous word; it is written when the user picks an option or confirms an auto-picked
+proposal, and read by the planner. A preference only pre-fills a proposal — confirmation is
+still required. On the client, recording ends automatically ~1.8 s after speech stops: the
+browser engine uses result timing; the server engine uses an adaptive RMS noise floor (speech =
+2.5× background) with a 15 s per-utterance cap, so busy shops don't record forever.
 
 ### Context safety
 Follow-ups ("10 aur bech di") may reuse the last referenced product only if that turn is

@@ -158,4 +158,65 @@ describe("AI assistant: voice → understand → confirm → execute", () => {
     await call("POST", `/ai/interactions/${undo.body.data.interactionId}/confirm`, { cookie });
     expect(await stockOf(cookie, byName("Pepsi 500ml"))).toBe(20000);
   });
+
+  it("auto-picks the shop's usual product after one choice, and lets the user switch on the card", async () => {
+    const { cookie, byName } = await setup();
+    const coke500 = byName("Coke 500ml");
+    const coke250 = byName("Coke 250ml");
+    const first = await say(cookie, "5 Coke biki");
+    expect(first.body.data.status).toBe("NEEDS_CLARIFICATION");
+    await call("POST", `/ai/interactions/${first.body.data.interactionId}/clarify`, { cookie, body: { optionId: coke500 } });
+
+    // Next time "Coke" means Coke 500ml — no list, straight to the confirmation card.
+    const next = await say(cookie, "Aaj 20 Coke biki");
+    expect(next.body.data.status).toBe("PROPOSED");
+    expect(next.body.data.proposal.command.items[0]).toMatchObject({ productId: coke500, quantityMilli: 20000 });
+    const pick = next.body.data.proposal.view.autoPicks[0];
+    expect(pick).toMatchObject({ slot: "item:0", chosenId: coke500 });
+    expect(pick.reason).toMatch(/usual|aksar/);
+    expect(pick.options.map((o: { id: string }) => o.id)).toContain(coke250);
+
+    // One tap on an alternative re-plans; it is still only a proposal.
+    const switched = await call("POST", `/ai/interactions/${next.body.data.interactionId}/clarify`, { cookie, body: { slot: "item:0", optionId: coke250 } });
+    expect(switched.body.data.status).toBe("PROPOSED");
+    expect(switched.body.data.proposal.command.items[0].productId).toBe(coke250);
+    expect(await stockOf(cookie, coke250)).toBeGreaterThan(0);
+
+    // Slots that weren't auto-picked can't be tampered with.
+    const bad = await call("POST", `/ai/interactions/${switched.body.data.interactionId}/clarify`, { cookie, body: { slot: "item:5", optionId: coke500 } });
+    expect(bad.status).toBeGreaterThanOrEqual(400);
+
+    // Confirming teaches the new preference.
+    await call("POST", `/ai/interactions/${switched.body.data.interactionId}/confirm`, { cookie });
+    const later = await say(cookie, "2 Coke biki");
+    expect(later.body.data.proposal.command.items[0].productId).toBe(coke250);
+  });
+
+  it("auto-picks the only variant in stock when selling", async () => {
+    const { cookie, byName, businessId } = await setup();
+    await env.DB.prepare("UPDATE products SET current_stock_milli = 0 WHERE business_id = ? AND name = 'Sprite 500ml'").bind(businessId).run();
+    const r = await say(cookie, "3 Sprite biki");
+    expect(r.body.data.status).toBe("PROPOSED");
+    expect(r.body.data.proposal.command.items[0].productId).toBe(byName("Sprite 250ml"));
+    expect(r.body.data.proposal.view.autoPicks[0].reason).toMatch(/only one in stock|sirf yahi/);
+  });
+
+  it("understands a Devanagari transcript instead of asking for the product", async () => {
+    const { cookie } = await setup();
+    const r = await say(cookie, "आज 20 कोक बिकी।");
+    expect(r.body.data.message).not.toMatch(/Kaunsa product/);
+    expect(["NEEDS_CLARIFICATION", "PROPOSED"]).toContain(r.body.data.status);
+    if (r.body.data.status === "NEEDS_CLARIFICATION") {
+      expect(r.body.data.clarification.options.every((o: { label: string }) => o.label.startsWith("Coke"))).toBe(true);
+    }
+  });
+
+  it("goes straight to the confirmation card for 'Two water bottle.'", async () => {
+    const { cookie, byName } = await setup();
+    const r = await say(cookie, "Two water bottle.");
+    expect(r.body.data.status).toBe("PROPOSED");
+    expect(r.body.data.proposal.needsReview).toBe(false);
+    expect(r.body.data.proposal.command.items[0]).toMatchObject({ productId: byName("Bisleri Water 1L"), quantityMilli: 2000 });
+  });
 });
+

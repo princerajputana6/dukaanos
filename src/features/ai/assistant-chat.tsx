@@ -102,7 +102,7 @@ export function AssistantChat() {
     return {
       busy: busy?.id === r.interactionId ? busy.kind : null,
       onConfirm: () => void run("confirm", () => apiFns.confirm(r.interactionId)),
-      onClarify: (c: { optionId?: string; text?: string }) => void run("clarify", () => apiFns.clarify(r.interactionId, c)),
+      onClarify: (c: { optionId?: string; text?: string; slot?: string }) => void run("clarify", () => apiFns.clarify(r.interactionId, c)),
       onCancel: () => void run("cancel", () => apiFns.cancel(r.interactionId)),
       onEdit: () => apiFns.edit(r),
     };

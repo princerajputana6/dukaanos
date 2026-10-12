@@ -22,6 +22,8 @@ import { expenses, purchases } from "@/server/db/schema";
 import type { Catalog, CatalogProduct, ConversationRefs } from "./catalog";
 import type { ItemEntity, ParsedIntent, Period } from "./contract";
 import { rankCandidates, resolveOne, type MatchCandidate } from "./matching";
+import { isCommandWord } from "./rules-parser";
+import { normalizeText, tokenize } from "@/lib/text";
 
 export type Lang = ParsedIntent["language"];
 
@@ -41,6 +43,17 @@ export interface ProposalView {
   warnings: string[];
   confirmLabel: string;
   editHref: string | null;
+  /** Products picked automatically for ambiguous words, with one-tap alternatives. */
+  autoPicks?: AutoPick[];
+}
+
+export interface AutoPick {
+  slot: string;
+  query: string;
+  chosenId: string;
+  chosenName: string;
+  reason: string;
+  options: ClarifyOption[];
 }
 
 export interface Proposal {
@@ -80,6 +93,8 @@ export interface PlanInput {
   resolutions: Record<string, string>;
   /** Subject from the recent conversation (only within the follow-up window). */
   followUp: { refs: ConversationRefs } | null;
+  /** The user's words, used to find a product the parser didn't attach to an item. */
+  text?: string;
 }
 
 export interface PlanOutput {
@@ -113,11 +128,80 @@ export async function plan(ctx: ServiceContext, catalog: Catalog, input: PlanInp
   };
 
   /** Resolves a product query, honouring earlier clarification choices. */
-  const resolveProduct = (slot: string, query: string | null | undefined): CatalogProduct => {
+  const autoPicks: AutoPick[] = [];
+  const popularityOf = new Map(catalog.products.map((c) => [c.value.id, c.popularity ?? 0]));
+  const sellIntent = input.parsed.intent === "CREATE_SALE" || (input.parsed.intent === "ADJUST_STOCK" && e.stock_direction === "decrease");
+
+  /**
+   * For an ambiguous word, pick the product when the choice is clear — the shop's learned
+   * preference, the only one in stock (for sales), or a clear best-seller. The confirmation
+   * card shows what was picked and offers the alternatives; nothing is saved without Confirm.
+   */
+  const autoPick = (slot: string, query: string, options: CatalogProduct[], chosenId?: string): CatalogProduct | null => {
+    let pick: CatalogProduct | undefined;
+    let reason = "";
+    if (chosenId) {
+      pick = options.find((o) => o.id === chosenId);
+      reason = L(lang, "your choice", "aapki pasand");
+    }
+    if (!pick) {
+      const pref = catalog.preferences.get(normalizeText(query));
+      pick = options.find((o) => o.id === pref);
+      if (pick) reason = L(lang, "your usual", "aap aksar yahi lete hain");
+    }
+    if (!pick && sellIntent) {
+      const inStock = options.filter((o) => !o.trackStock || o.currentStockMilli > 0);
+      if (inStock.length === 1) {
+        pick = inStock[0];
+        reason = L(lang, "the only one in stock", "sirf yahi stock mein hai");
+      }
+    }
+    if (!pick) {
+      const pops = options.map((o) => popularityOf.get(o.id) ?? 0);
+      const total = pops.reduce((a, b) => a + b, 0);
+      const best = Math.max(...pops);
+      if (best > 0 && best / total >= 0.6) {
+        pick = options[pops.indexOf(best)];
+        reason = L(lang, "your best-seller", "sabse zyada bikne wala");
+      }
+    }
+    if (!pick) return null;
+    autoPicks.push({ slot, query, chosenId: pick.id, chosenName: pick.name, reason, options: options.map(productOption) });
+    return pick;
+  };
+
+  /** Finds exactly one product mentioned anywhere in the user's words. */
+  const productInText = (): CatalogProduct | null => {
+    if (!input.text) return null;
+    const words = tokenize(input.text).filter((w) => !/^\d/.test(w) && !isCommandWord(w));
+    const found = new Set<string>();
+    for (let n = Math.min(3, words.length); n >= 1; n--) {
+      for (let i = 0; i + n <= words.length; i++) {
+        const r = resolveOne(words.slice(i, i + n).join(" "), catalog.products);
+        if (r.status === "resolved" && r.match.score >= 0.85) found.add(r.match.value.id);
+      }
+      if (found.size) break;
+    }
+    if (found.size !== 1) return null;
+    return catalog.products.find((c) => c.value.id === [...found][0])?.value ?? null;
+  };
+
+  const resolveProduct = (slot: string, query: string | null | undefined, singleItem = false): CatalogProduct => {
     const chosen = input.resolutions[slot];
     if (chosen) {
       const p = catalog.products.find((c) => c.value.id === chosen);
-      if (p) return p.value;
+      if (p) {
+        // Keep the alternatives on the card after the user switched.
+        if (query) {
+          const r = resolveOne(query, catalog.products);
+          if (r.status === "ambiguous" && r.options.some((o) => o.value.id === chosen)) autoPick(slot, query, r.options.map((o) => o.value), chosen);
+        }
+        return p.value;
+      }
+    }
+    if (!query && singleItem) {
+      const p = productInText();
+      if (p) return p;
     }
     if (!query) {
       const fromContext = input.followUp?.refs.productIds ?? [];
@@ -142,6 +226,8 @@ export async function plan(ctx: ServiceContext, catalog: Catalog, input: PlanInp
     const r = resolveOne(query, catalog.products);
     if (r.status === "resolved") return r.match.value;
     if (r.status === "ambiguous") {
+      const picked = autoPick(slot, query, r.options.map((o) => o.value));
+      if (picked) return picked;
       throw new Clarify({
         type: "clarify",
         slot,
@@ -233,6 +319,7 @@ export async function plan(ctx: ServiceContext, catalog: Catalog, input: PlanInp
 
   try {
     const result = await dispatch();
+    if (result.type === "proposal" && autoPicks.length) result.proposal.view.autoPicks = autoPicks;
     return { result, refs, contextNote };
   } catch (err) {
     if (err instanceof Clarify) return { result: err.result, refs, contextNote };
@@ -250,7 +337,7 @@ export async function plan(ctx: ServiceContext, catalog: Catalog, input: PlanInp
         const items = e.items?.length ? e.items : [{ query: null, quantity: null, unit: null }];
         const warnings: string[] = [];
         const lines = items.map((it, i) => {
-          const product = resolveProduct(`item:${i}`, it.query);
+          const product = resolveProduct(`item:${i}`, it.query, items.length === 1);
           refs.productIds.push(product.id);
           const quantityMilli = quantityFor(`qty:${i}`, it, product, warnings);
           return { productId: product.id, quantityMilli, ...(it.price_rupees ? { unitPricePaise: Math.round((it.price_rupees * 100 * 1000) / Math.max(1, quantityMilli / (it.quantity ?? 1))) } : {}) };
@@ -304,7 +391,7 @@ export async function plan(ctx: ServiceContext, catalog: Catalog, input: PlanInp
           refs.supplierId = s.id;
         }
         const lines = items.map((it, i) => {
-          const product = resolveProduct(`item:${i}`, it.query);
+          const product = resolveProduct(`item:${i}`, it.query, items.length === 1);
           refs.productIds.push(product.id);
           const quantityMilli = quantityFor(`qty:${i}`, it, product, warnings);
           let unitCostPaise: number;
@@ -358,7 +445,7 @@ export async function plan(ctx: ServiceContext, catalog: Catalog, input: PlanInp
       case "ADJUST_STOCK": {
         need("inventory.adjust");
         const it = e.items?.[0] ?? { query: null, quantity: null, unit: null };
-        const product = resolveProduct("item:0", it.query);
+        const product = resolveProduct("item:0", it.query, true);
         refs.productIds.push(product.id);
         const warnings: string[] = [];
         const qty = quantityFor("qty:0", it, product, warnings);

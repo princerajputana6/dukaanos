@@ -11,8 +11,12 @@ import type { AssistantResponse } from "@/lib/api-types";
 const END_OF_SPEECH_SILENCE_MS = 1_800;
 /** Give up if nothing is said at all. */
 const NO_SPEECH_TIMEOUT_MS = 8_000;
-/** Input level (0..1) above which we treat the signal as speech. */
-const SPEECH_LEVEL = 0.06;
+/** Minimum RMS treated as speech, even in a very quiet room. */
+const MIN_SPEECH_RMS = 0.02;
+/** Speech must be this many times louder than the room's background noise. */
+const SPEECH_OVER_NOISE = 2.5;
+/** Hard cap on one utterance once speech started (a TV in the background can't keep us recording). */
+const MAX_UTTERANCE_MS = 15_000;
 
 export type SpeechProviderId = "browser" | "server";
 
@@ -171,11 +175,11 @@ export class ServerSpeechProvider implements SpeechProvider {
     let stream: MediaStream | null = null;
     let aborted = false;
     let stopRequested = false;
-    let raf = 0;
+    let vadTimer: ReturnType<typeof setTimeout> | undefined;
     let audioCtx: AudioContext | null = null;
     const chunks: Blob[] = [];
     const cleanup = () => {
-      cancelAnimationFrame(raf);
+      clearTimeout(vadTimer);
       void audioCtx?.close().catch(() => undefined);
       stream?.getTracks().forEach((t) => t.stop());
     };
@@ -199,21 +203,39 @@ export class ServerSpeechProvider implements SpeechProvider {
       try {
         const ac = new AudioContext();
         audioCtx = ac;
+        if (ac.state === "suspended") void ac.resume(); // iOS/Safari start suspended → silent readings
         const analyser = ac.createAnalyser();
-        analyser.fftSize = 256;
+        analyser.fftSize = 1024;
         ac.createMediaStreamSource(stream).connect(analyser);
-        const buf = new Uint8Array(analyser.frequencyBinCount);
+        const buf = new Float32Array(analyser.fftSize);
         const startedAt = Date.now();
+        // Adaptive voice-activity detection: track the background noise floor (slowly rising,
+        // quickly falling) and treat only clearly-louder frames as speech, so a noisy shop
+        // still ends the recording when the shopkeeper stops talking.
+        let noise = 0;
+        let speechStartedAt = 0;
         let heardAt = 0;
         const tick = () => {
-          analyser.getByteFrequencyData(buf);
-          const level = buf.reduce((a, b) => a + b, 0) / buf.length / 255;
-          cb.onLevel?.(level);
+          analyser.getFloatTimeDomainData(buf);
+          let sum = 0;
+          for (let i = 0; i < buf.length; i++) sum += buf[i]! * buf[i]!;
+          const rms = Math.sqrt(sum / buf.length);
           const now = Date.now();
-          if (level > SPEECH_LEVEL) heardAt = now;
-          const silentTooLong = heardAt ? now - heardAt > END_OF_SPEECH_SILENCE_MS : now - startedAt > NO_SPEECH_TIMEOUT_MS;
-          if (silentTooLong && recorder?.state === "recording") recorder.stop();
-          else raf = requestAnimationFrame(tick);
+          noise = noise === 0 ? rms : rms < noise ? noise * 0.8 + rms * 0.2 : noise * 0.995 + rms * 0.005;
+          const threshold = Math.max(MIN_SPEECH_RMS, noise * SPEECH_OVER_NOISE);
+          cb.onLevel?.(Math.min(1, rms / (threshold * 2)));
+          if (rms > threshold && now - startedAt > 200) {
+            heardAt = now;
+            speechStartedAt ||= now;
+          }
+          const finished = heardAt
+            ? now - heardAt > END_OF_SPEECH_SILENCE_MS || now - speechStartedAt > MAX_UTTERANCE_MS
+            : now - startedAt > NO_SPEECH_TIMEOUT_MS;
+          if (finished) {
+            if (recorder?.state === "recording") recorder.stop();
+            return;
+          }
+          if (recorder?.state === "recording") vadTimer = setTimeout(tick, 50);
         };
         tick();
       } catch {
