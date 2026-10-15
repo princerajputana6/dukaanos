@@ -334,7 +334,7 @@ export async function supplierOutstanding(ctx: ServiceContext) {
 /** GST summary: output tax on sales vs input tax on purchases, by rate. Not a filing. */
 export async function gstSummary(ctx: ServiceContext, r: Range) {
   requirePermission(ctx, "reports.view");
-  const [out, inp] = await Promise.all([
+  const [out, inp, hsnRows] = await Promise.all([
     ctx.db
       .select({
         rateBp: saleItems.gstRateBp,
@@ -363,13 +363,31 @@ export async function gstSummary(ctx: ServiceContext, r: Range) {
       .where(and(eq(purchases.businessId, ctx.businessId), eq(purchases.status, "COMPLETED"), gte(purchases.txnDate, r.from), lte(purchases.txnDate, r.to)))
       .groupBy(purchaseItems.gstRateBp)
       .orderBy(asc(purchaseItems.gstRateBp)),
+    // HSN-wise outward summary (GSTR-1 HSN table). hsnCode is snapshotted on each sale line.
+    ctx.db
+      .select({
+        hsnCode: sql<string>`coalesce(${saleItems.hsnCode}, '')`,
+        rateBp: saleItems.gstRateBp,
+        qtyMilli: sql<number>`sum(${saleItems.quantityMilli})`,
+        taxablePaise: sql<number>`sum(${saleItems.taxablePaise})`,
+        cgstPaise: sql<number>`sum(${saleItems.cgstPaise})`,
+        sgstPaise: sql<number>`sum(${saleItems.sgstPaise})`,
+        igstPaise: sql<number>`sum(${saleItems.igstPaise})`,
+        taxPaise: sql<number>`sum(${saleItems.taxPaise})`,
+      })
+      .from(saleItems)
+      .innerJoin(sales, eq(sales.id, saleItems.saleId))
+      .where(completedSalesIn(ctx, r))
+      .groupBy(sql`coalesce(${saleItems.hsnCode}, '')`, saleItems.gstRateBp)
+      .orderBy(desc(sql`sum(${saleItems.taxablePaise})`)),
   ]);
   const norm = (rows: typeof out) => rows.map((x) => ({ rateBp: x.rateBp, taxablePaise: Number(x.taxablePaise), cgstPaise: Number(x.cgstPaise), sgstPaise: Number(x.sgstPaise), igstPaise: Number(x.igstPaise), taxPaise: Number(x.taxPaise) }));
   const output = norm(out);
   const input = norm(inp);
+  const hsn = hsnRows.map((x) => ({ hsnCode: x.hsnCode || "—", rateBp: x.rateBp, qtyMilli: Number(x.qtyMilli), taxablePaise: Number(x.taxablePaise), cgstPaise: Number(x.cgstPaise), sgstPaise: Number(x.sgstPaise), igstPaise: Number(x.igstPaise), taxPaise: Number(x.taxPaise) }));
   const outTax = output.reduce((a, x) => a + x.taxPaise, 0);
   const inTax = input.reduce((a, x) => a + x.taxPaise, 0);
-  return { range: r, output, input, outputTaxPaise: outTax, inputTaxPaise: inTax, netPayablePaise: outTax - inTax };
+  return { range: r, output, input, hsn, outputTaxPaise: outTax, inputTaxPaise: inTax, netPayablePaise: outTax - inTax };
 }
 
 /** Named period helper for AI answers & report presets. */
@@ -441,6 +459,11 @@ export async function reportCsv(ctx: ServiceContext, kind: string, r: Range): Pr
         ...g.input.map((x) => ["input (purchases)", x.rateBp / 100, R(x.taxablePaise), R(x.cgstPaise), R(x.sgstPaise), R(x.igstPaise), R(x.taxPaise)]),
       ];
       return { filename: `gst-summary-${r.from}-${r.to}.csv`, csv: toCsv(["type", "gst_rate", "taxable", "cgst", "sgst", "igst", "total_tax"], rows) };
+    }
+    case "gst-hsn": {
+      const g = await gstSummary(ctx, r);
+      const rows = g.hsn.map((x) => [x.hsnCode, x.rateBp / 100, x.qtyMilli / 1000, R(x.taxablePaise), R(x.cgstPaise), R(x.sgstPaise), R(x.igstPaise), R(x.taxPaise)]);
+      return { filename: `gst-hsn-${r.from}-${r.to}.csv`, csv: toCsv(["hsn", "gst_rate", "quantity", "taxable", "cgst", "sgst", "igst", "total_tax"], rows) };
     }
     default:
       throw new Error(`Unknown report ${kind}`);

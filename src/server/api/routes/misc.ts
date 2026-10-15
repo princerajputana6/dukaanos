@@ -28,7 +28,7 @@ export const expenseRoutes = bizRouter()
   })
   .post("/:id/reverse", async (c) => ok(c, await expensesSvc.reverseExpense(c.get("ctx"), c.req.param("id"), (await body(c, reverseSchema)).reason, idempotencyKey(c))));
 
-const REPORT_KINDS = ["sales", "profit", "expenses", "top-products", "inventory", "low-stock", "customer-outstanding", "supplier-outstanding", "gst"] as const;
+const REPORT_KINDS = ["sales", "profit", "expenses", "top-products", "inventory", "low-stock", "customer-outstanding", "supplier-outstanding", "gst", "gst-hsn"] as const;
 
 export const reportRoutes = bizRouter()
   .get("/dashboard", async (c) => ok(c, await reports.dashboard(c.get("ctx"))))

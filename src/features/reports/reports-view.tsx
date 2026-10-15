@@ -289,7 +289,28 @@ function GstTab({ range }: { range: Range }) {
       <Table head={["Rate", "Taxable", "CGST+SGST", "IGST", "Tax"]} rows={rows(d.output)} />
       <h3 className="text-[14px] font-semibold">Purchases (input)</h3>
       <Table head={["Rate", "Taxable", "CGST+SGST", "IGST", "Tax"]} rows={rows(d.input)} />
-      <p className="text-[12.5px] text-muted-foreground">A summary to help you or your CA — not a GST return filing.</p>
+
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-[14px] font-semibold">HSN summary (for GSTR-1)</h3>
+        {d.hsn.length > 0 && (
+          <a href={`/api/reports/export/gst-hsn${qs(range)}`} download className="text-[13px] font-semibold text-primary hover:underline">
+            Export HSN (CSV)
+          </a>
+        )}
+      </div>
+      <Table
+        head={["HSN", "Rate", "Qty", "Taxable", "CGST+SGST", "IGST", "Tax"]}
+        rows={d.hsn.map((x) => [
+          x.hsnCode,
+          formatGstRate(x.rateBp),
+          <Qty key="q" milli={x.qtyMilli} />,
+          <Money key="t" paise={x.taxablePaise} />,
+          <Money key="c" paise={x.cgstPaise + x.sgstPaise} />,
+          <Money key="i" paise={x.igstPaise} />,
+          <Money key="x" paise={x.taxPaise} className="font-semibold" />,
+        ])}
+      />
+      <p className="text-[12.5px] text-muted-foreground">A summary to help you or your CA — not a GST return filing. Set each product’s HSN code in its details for a complete HSN summary.</p>
     </div>
   );
 }
