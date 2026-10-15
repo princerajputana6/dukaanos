@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   // Development configuration (local `vinext dev`). Staging/production live under `env`.
-  "name": "dukaanos",
+  "name": "suvakta",
   "compatibility_date": "2026-08-20",
   "compatibility_flags": ["nodejs_compat"],
   "main": "./worker/index.ts",
@@ -41,10 +41,10 @@
 
   "env": {
     "staging": {
-      "name": "dukaanos-staging",
+      "name": "suvakta-staging",
       "vars": {
         "ENVIRONMENT": "staging",
-        "APP_URL": "https://dukaanos-staging.example.workers.dev",
+        "APP_URL": "https://suvakta-staging.connect-88a.workers.dev",
         "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
         "STT_MODEL": "@cf/openai/whisper-large-v3-turbo",
         "FLAG_VOICE_ENABLED": "true",
@@ -70,7 +70,7 @@
       "triggers": { "crons": ["30 15 * * *"] }
     },
     "production": {
-      "name": "dukaanos",
+      "name": "suvakta",
       "vars": {
         "ENVIRONMENT": "production",
         "APP_URL": "https://suvakta.com",
