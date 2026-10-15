@@ -184,3 +184,8 @@ Recommend **2a** first (smaller, strengthens an existing advertised claim); 2b n
 - Routes: `/shifts/current|open|close` + list. UI: `/cashbook` (open, live summary, close with live difference, past-shift history) + nav entry.
 - Verified in-browser: open with ₹1,000 float → live "Expected in drawer" → counting ₹900 shows "Off by ₹100 (short)" with required note. `pnpm check` → 19 files/156 tests, build ok.
 - Next (Release C/D): forecasting & reorder drafts; multi-warehouse; accounting export.
+
+### Phase 3a — Reorder suggestions (Release C start) — shipped (15 Oct 2026)
+- services/reorder.ts + `GET /inventory/reorder`: per tracked product, average daily demand over 30 days, days of cover, stockout risk, and a suggested quantity to reach lead+safety cover — subtracting stock already incoming on open POs and rounding up to the case pack. Data-sufficiency gate: with < 3 sale-days it falls back to the low-stock threshold and labels it "using alert level" rather than inventing a forecast. Suggestion only.
+- UI: upgraded the Inventory → Reorder tab with multi-select → Create PO draft (one PO per supplier, reusing Phase 2b). No-supplier rows can't be drafted.
+- Verified in-browser. `pnpm check` → 20 files/159 tests, build ok.

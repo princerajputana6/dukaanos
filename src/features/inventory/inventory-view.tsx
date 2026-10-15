@@ -16,12 +16,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCan } from "@/features/session/session-context";
 import { useDebounced } from "@/hooks/use-debounced";
 import { apiGet, qs } from "@/lib/api";
-import type { InventorySummary, LowStockItem, MovementList, ProductList } from "@/lib/api-types";
+import type { InventorySummary, MovementList, ProductList } from "@/lib/api-types";
 import { formatDateTime } from "@/lib/dates";
 import { MOVEMENT_LABELS, type MovementType } from "@/lib/domain";
 import { formatQty } from "@/lib/qty";
 import { cn } from "@/lib/utils";
 import { AdjustStockSheet } from "./adjust-stock";
+import { ReorderList } from "./reorder";
 
 const STOCK_FILTERS = [
   { id: "all", label: "All" },
@@ -176,48 +177,6 @@ export function InventoryView() {
       </Tabs>
 
       <AdjustStockSheet open={adjustOpen} onOpenChange={(o) => (setAdjustOpen(o), !o && url.get("adjust") && url.set({ adjust: null }))} />
-    </div>
-  );
-}
-
-function ReorderList() {
-  const q = useQuery({ queryKey: ["inventory", "low-stock"], queryFn: ({ signal }) => apiGet<LowStockItem[]>("/inventory/low-stock", signal) });
-  if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
-  if (!q.data) return <ListSkeleton rows={4} />;
-  if (!q.data.length) return <EmptyState icon={PackageIcon} title="All products are well stocked." description="Products at or below their alert level will appear here with a reorder suggestion." />;
-  return (
-    <div className="overflow-hidden rounded-2xl border bg-card">
-      <table className="w-full text-[14px]">
-        <thead className="bg-muted/50 text-left text-[12px] text-muted-foreground">
-          <tr>
-            <th className="px-4 py-2.5 font-medium">Product</th>
-            <th className="px-2 py-2.5 text-right font-medium">Stock</th>
-            <th className="hidden px-2 py-2.5 text-right font-medium sm:table-cell">Alert at</th>
-            <th className="px-4 py-2.5 text-right font-medium">Reorder</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {q.data.map((p) => (
-            <tr key={p.id}>
-              <td className="px-4 py-3">
-                <Link href={`/inventory/${p.id}`} className="font-medium hover:text-primary">
-                  {p.name}
-                </Link>
-                <span className="block text-[12px] text-muted-foreground">Sold {formatQty(p.soldLast14DaysMilli)} in 14 days</span>
-              </td>
-              <td className={cn("px-2 py-3 text-right font-semibold", p.currentStockMilli <= 0 && "text-destructive")}>
-                <Qty milli={Math.max(0, p.currentStockMilli)} />
-              </td>
-              <td className="hidden px-2 py-3 text-right text-muted-foreground sm:table-cell">
-                <Qty milli={p.lowStockThresholdMilli} />
-              </td>
-              <td className="px-4 py-3 text-right font-semibold text-primary">
-                ~<Qty milli={p.suggestedReorderMilli} unit={p.unit} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }

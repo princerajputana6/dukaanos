@@ -4,6 +4,7 @@ import { createCategorySchema, createProductSchema, importProductsSchema, listPr
 import { AppError } from "@/server/lib/errors";
 import * as inventory from "@/server/services/inventory";
 import * as stockCount from "@/server/services/stock-count";
+import { reorderSuggestions, REORDER_META } from "@/server/services/reorder";
 import * as productsSvc from "@/server/services/products";
 import { todayIst } from "@/lib/dates";
 import { body, csv, idempotencyKey, ok, query } from "../respond";
@@ -47,6 +48,7 @@ export const productRoutes = bizRouter()
 export const inventoryRoutes = bizRouter()
   .get("/", async (c) => ok(c, await inventory.inventorySummary(c.get("ctx"))))
   .get("/low-stock", async (c) => ok(c, await inventory.lowStockProducts(c.get("ctx"))))
+  .get("/reorder", async (c) => ok(c, { items: await reorderSuggestions(c.get("ctx")), meta: REORDER_META }))
   .get("/movements", async (c) => ok(c, await inventory.listMovements(c.get("ctx"), query(c, listMovementsSchema))))
   .post("/adjust", requirePerm("inventory.adjust"), async (c) => ok(c, await inventory.adjustStock(c.get("ctx"), await body(c, adjustStockSchema), idempotencyKey(c)), 201))
   .get("/counts", async (c) => ok(c, await stockCount.listStockCounts(c.get("ctx"))))
