@@ -177,3 +177,10 @@ Recommend **2a** first (smaller, strengthens an existing advertised claim); 2b n
 - UI: `/purchases/orders` (list + status filter), `/purchases/orders/new` (supplier + lines), `/purchases/orders/:id` (lifecycle actions + receive dialog). "Orders" link added to the Purchases header.
 - Verified in-browser: Draft → Submit → Approve → Receive 48 → Received, with "stock and supplier balance updated". `pnpm check` → 18 files/153 tests, build ok.
 - Next options: POS shifts/cashbook; multi-warehouse; accounting export.
+
+### Phase 2c — POS shifts / cashbook — ☑ shipped (15 Oct 2026)
+- Schema (migration `0009`): `pos_shifts`. One OPEN shift per business; open with a float, close with a counted amount.
+- services/shift.ts: expected cash is derived live from the unified `payments` ledger (cash sales + receipts − payouts − cash expenses) — never a drifting counter. Close records expected/counted/difference; a mismatch over ₹100 needs a note and is flagged in the audit log (`SHIFT_CLOSED_MISMATCH`).
+- Routes: `/shifts/current|open|close` + list. UI: `/cashbook` (open, live summary, close with live difference, past-shift history) + nav entry.
+- Verified in-browser: open with ₹1,000 float → live "Expected in drawer" → counting ₹900 shows "Off by ₹100 (short)" with required note. `pnpm check` → 19 files/156 tests, build ok.
+- Next (Release C/D): forecasting & reorder drafts; multi-warehouse; accounting export.

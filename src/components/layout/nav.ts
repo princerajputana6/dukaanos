@@ -11,6 +11,7 @@ import {
   ShoppingBagIcon,
   ShoppingCartIcon,
   TruckIcon,
+  BanknoteIcon,
   WalletIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -33,6 +34,7 @@ export const SIDEBAR_NAV: NavItem[] = [
   { href: "/customers", label: "Customers", icon: BookUserIcon },
   { href: "/suppliers", label: "Suppliers", icon: TruckIcon, permission: "supplier.create" },
   { href: "/expenses", label: "Expenses", icon: WalletIcon, permission: "expense.create" },
+  { href: "/cashbook", label: "Cashbook", icon: BanknoteIcon, permission: "sales.create" },
   { href: "/reports", label: "Reports", icon: BarChart3Icon, permission: "reports.view" },
   { href: "/ai", label: "AI Assistant", icon: BotIcon },
 ];
@@ -55,6 +57,7 @@ export const MORE_NAV: NavItem[] = [
   { href: "/purchases", label: "Purchases", icon: ShoppingBagIcon, permission: "purchase.create" },
   { href: "/suppliers", label: "Suppliers", icon: TruckIcon, permission: "supplier.create" },
   { href: "/expenses", label: "Expenses", icon: WalletIcon, permission: "expense.create" },
+  { href: "/cashbook", label: "Cashbook", icon: BanknoteIcon, permission: "sales.create" },
   { href: "/reports", label: "Reports", icon: BarChart3Icon, permission: "reports.view" },
   { href: "/ai", label: "AI Assistant", icon: BotIcon },
   { href: "/notifications", label: "Notifications", icon: BellIcon },

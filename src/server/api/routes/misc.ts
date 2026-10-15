@@ -3,11 +3,13 @@ import { createExpenseCategorySchema, createExpenseSchema, listExpensesSchema } 
 import { addMemberSchema, listAuditSchema, resetMemberPasswordSchema, roleSchema, searchSchema, updateMemberSchema } from "@/schemas/admin";
 import { reverseSchema } from "@/schemas/parties";
 import { dateRangeSchema } from "@/schemas/common";
+import { closeShiftSchema, openShiftSchema } from "@/schemas/shift";
 import { listAudit } from "@/server/services/audit";
 import * as expensesSvc from "@/server/services/expenses";
 import * as members from "@/server/services/members";
 import * as notif from "@/server/services/notifications";
 import * as reports from "@/server/services/reports";
+import * as shift from "@/server/services/shift";
 import { globalSearch } from "@/server/services/search";
 import { AppError } from "@/server/lib/errors";
 import { body, csv, idempotencyKey, ok, query } from "../respond";
@@ -77,3 +79,10 @@ export const teamRoutes = bizRouter()
   )
   .post("/roles", async (c) => ok(c, await members.saveRole(c.get("ctx"), await body(c, roleSchema)), 201))
   .patch("/roles/:id", async (c) => ok(c, await members.saveRole(c.get("ctx"), await body(c, roleSchema), c.req.param("id"))));
+
+export const shiftRoutes = bizRouter()
+  .get("/current", async (c) => ok(c, await shift.currentShift(c.get("ctx"))))
+  .get("/", async (c) => ok(c, await shift.listShifts(c.get("ctx"))))
+  .post("/open", async (c) => ok(c, await shift.openShift(c.get("ctx"), await body(c, openShiftSchema)), 201))
+  .post("/close", async (c) => ok(c, await shift.closeShift(c.get("ctx"), await body(c, closeShiftSchema))));
+

@@ -10,7 +10,7 @@ import { adminRoutes } from "./routes/admin";
 import { aiRoutes } from "./routes/ai";
 import { branchRoutes } from "./routes/branches";
 import { businessRoutes } from "./routes/business";
-import { auditRoutes, expenseRoutes, notificationRoutes, reportRoutes, searchRoutes, teamRoutes } from "./routes/misc";
+import { auditRoutes, expenseRoutes, notificationRoutes, reportRoutes, searchRoutes, shiftRoutes, teamRoutes } from "./routes/misc";
 import { customerRoutes, supplierRoutes } from "./routes/parties";
 import { fileRoutes, inventoryRoutes, productRoutes } from "./routes/products";
 import { publicRoutes } from "./routes/public";
@@ -59,6 +59,7 @@ export function createApp() {
   app.route("/customers", customerRoutes);
   app.route("/suppliers", supplierRoutes);
   app.route("/expenses", expenseRoutes);
+  app.route("/shifts", shiftRoutes);
   app.route("/reports", reportRoutes);
   app.route("/notifications", notificationRoutes);
   app.route("/audit", auditRoutes);

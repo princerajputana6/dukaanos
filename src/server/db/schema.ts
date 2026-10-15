@@ -996,3 +996,28 @@ export const purchaseOrderLines = sqliteTable(
   },
   (t) => [index("purchase_order_lines_po_idx").on(t.purchaseOrderId)],
 );
+
+/**
+ * POS cash-drawer shift: opening float, cash in/out during the shift, and a counted close with
+ * the expected-vs-counted difference. Only one OPEN shift per business at a time.
+ */
+export const posShifts = sqliteTable(
+  "pos_shifts",
+  {
+    id: id(),
+    businessId: businessId(),
+    status: text("status").notNull().default("OPEN"),
+    openingCashPaise: integer("opening_cash_paise").notNull().default(0),
+    openedBy: text("opened_by"),
+    openedAt: integer("opened_at").notNull(),
+    /** Set at close. */
+    expectedCashPaise: integer("expected_cash_paise"),
+    countedCashPaise: integer("counted_cash_paise"),
+    differencePaise: integer("difference_paise"),
+    note: text("note"),
+    closedBy: text("closed_by"),
+    closedAt: integer("closed_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("pos_shifts_business_status_idx").on(t.businessId, t.status, t.openedAt)],
+);

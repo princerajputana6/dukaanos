@@ -64,6 +64,13 @@
       "when": 1792076808660,
       "tag": "0008_purchase_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1792085115813,
+      "tag": "0009_pos_shifts",
+      "breakpoints": true
     }
   ]
 }
