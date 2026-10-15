@@ -1,3 +1,4 @@
+"use client";
 import { ArrowRightIcon, BellIcon, CheckCircle2Icon, MicIcon, PencilIcon, SearchIcon, TrendingUpIcon, XIcon } from "lucide-react";
 
 /**

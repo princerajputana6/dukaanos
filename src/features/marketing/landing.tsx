@@ -1,3 +1,4 @@
+"use client";
 import {
   ArrowRightIcon,
   BarChart3Icon,
