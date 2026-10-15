@@ -1,5 +1,5 @@
 # Local overrides for `pnpm dev` / `wrangler dev`. Copy to .dev.vars (git-ignored).
-# DukaanOS needs NO API keys: AI and speech use the Workers AI binding, and the
+# Suvakta needs NO API keys: AI and speech use the Workers AI binding, and the
 # database/files use D1/R2 bindings configured in wrangler.jsonc.
 
 # Optional — password-reset emails via Cloudflare Email Service. Requires a domain

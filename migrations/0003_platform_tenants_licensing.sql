@@ -73,7 +73,7 @@ CREATE INDEX `businesses_tenant_idx` ON `businesses` (`tenant_id`);--> statement
 CREATE INDEX `businesses_status_idx` ON `businesses` (`status`);--> statement-breakpoint
 ALTER TABLE `users` ADD `platform_role` text;--> statement-breakpoint
 -- Backfill: every existing shop becomes its own tenant (main branch) with an active,
--- non-expiring BASIC licence, so nobody already using DukaanOS is locked out.
+-- non-expiring BASIC licence, so nobody already using Suvakta is locked out.
 INSERT INTO `tenants` (`id`, `name`, `agency_id`, `owner_user_id`, `status`, `notes`, `created_at`, `updated_at`)
 SELECT 'tn_' || `id`, `name`, NULL, `created_by`, 'ACTIVE', 'Created by migration 0003', `created_at`, `updated_at` FROM `businesses` WHERE `tenant_id` IS NULL;
 --> statement-breakpoint

@@ -7,7 +7,7 @@ import { getPageSession } from "@/server/auth/page-session";
 export const metadata: Metadata = {
   title: { absolute: `${BRAND.name} — ${BRAND.tagline}` },
   description: BRAND.description,
-  openGraph: { title: `${BRAND.name} — Bolo, aur hisaab ho gaya.`, description: BRAND.description, images: ["/marketing/og.jpg"], type: "website" },
+  openGraph: { title: `${BRAND.name} — Bolo, aur hisaab ho gaya.`, description: BRAND.description, type: "website" },
 };
 
 /** Logged-in users go straight to their workspace; everyone else sees the website. */

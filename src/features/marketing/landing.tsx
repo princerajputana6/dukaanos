@@ -26,9 +26,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { BRAND } from "@/lib/brand";
 import { BrowserFrame, PhoneFrame, VoiceWave } from "./frames";
+import { DashboardMock, InventoryMock, KhataMock, ReportsMock, VoiceConfirmMock } from "./mockups";
 import { QuoteForm } from "./quote-form";
-
-const SHOT = "/marketing";
 
 const SAYINGS = ["“Aaj 20 Coke aur 10 Sprite biki”", "“Ramesh ne ₹500 diye”", "“Sharma se 2 crate Pepsi aayi”", "“Kaunsa maal khatam ho raha hai?”", "“Bijli ka bill 1200 diya”", "“Aaj kitna munafa hua?”"];
 
@@ -41,38 +40,34 @@ const STEPS = [
   { icon: PackageCheckIcon, title: "Ho gaya", body: "Sale recorded, stock updated, khata adjusted and reports refreshed — instantly and safely." },
 ];
 
-const SPOTLIGHTS: Array<{ eyebrow: string; title: string; body: string; points: string[]; shot: string; alt: string }> = [
+const SPOTLIGHTS: Array<{ eyebrow: string; title: string; body: string; points: string[]; Mock: () => React.ReactNode }> = [
   {
     eyebrow: "Voice billing",
     title: "Billing as fast as you can speak",
     body: "Say what sold and Suvakta prepares the bill. It learns what your shop means — “Coke” becomes your usual Coke 500ml — and never saves anything until you confirm.",
     points: ["Understands Hindi script, English and Hinglish", "Auto-picks your usual product, or the only one in stock", "Shows total, GST and stock impact before saving"],
-    shot: `${SHOT}/voice-confirm.jpg`,
-    alt: "Suvakta confirmation card for a voice sale showing items, total and stock impact",
+    Mock: VoiceConfirmMock,
   },
   {
     eyebrow: "Stock & inventory",
     title: "Know what’s on the shelf — always",
     body: "Every sale and purchase updates stock automatically. Crates, boxes and packets convert to pieces for you, and low-stock alerts tell you what to reorder before it runs out.",
     points: ["Pack units: 1 crate = 24 bottles, automatically", "Low-stock and out-of-stock alerts", "Stock can never go negative by mistake"],
-    shot: `${SHOT}/inventory.jpg`,
-    alt: "Suvakta inventory screen with stock levels and low-stock filters",
+    Mock: InventoryMock,
   },
   {
     eyebrow: "Khata & udhaar",
     title: "A khata that never forgets",
     body: "Record udhaar and payments by voice. Every customer’s running balance is always up to date, and a polite WhatsApp reminder is one tap away.",
     points: ["“Ramesh ko 5 Coke udhaar” — done", "Running balance and full history per customer", "One-tap WhatsApp payment reminders"],
-    shot: `${SHOT}/khata.jpg`,
-    alt: "Suvakta customer khata screen with balances",
+    Mock: KhataMock,
   },
   {
     eyebrow: "Dashboard",
     title: "Your whole business on one screen",
     body: "Today’s sales, profit, cash vs UPI vs udhaar, top products and what needs attention — the moment you open the app. A summary arrives every evening at 9 PM.",
     points: ["Live sales, profit and payment mix", "Top-selling products and slow movers", "Daily summary every night"],
-    shot: `${SHOT}/dashboard.jpg`,
-    alt: "Suvakta dashboard showing today's sales, profit and alerts",
+    Mock: DashboardMock,
   },
 ];
 
@@ -169,9 +164,11 @@ export function LandingPage() {
               ))}
             </ul>
           </div>
-          <div className="relative mx-auto w-full max-w-[340px]">
-            <PhoneFrame src={`${SHOT}/voice-confirm.jpg`} alt="Suvakta on a phone: a spoken sale ready to confirm" priority />
-            <div className="absolute top-16 -left-6 hidden rounded-2xl border bg-card/95 px-4 py-3 shadow-lift backdrop-blur sm:block lg:-left-24">
+          <div className="relative mx-auto w-full max-w-[320px]">
+            <PhoneFrame>
+              <VoiceConfirmMock />
+            </PhoneFrame>
+            <div className="absolute top-16 -left-6 hidden rounded-2xl border bg-card/95 px-4 py-3 shadow-lift backdrop-blur sm:block lg:-left-20">
               <p className="flex items-center gap-2 text-[13px] font-semibold">
                 <span className="flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
                   <MicIcon className="size-3.5" />
@@ -234,8 +231,10 @@ export function LandingPage() {
         {SPOTLIGHTS.map((s, i) => (
           <Section key={s.title} className="py-16 md:py-20">
             <div className={`grid items-center gap-12 md:grid-cols-2 ${i % 2 ? "md:[&>*:first-child]:order-2" : ""}`}>
-              <div className="mx-auto w-full max-w-[300px]">
-                <PhoneFrame src={s.shot} alt={s.alt} />
+              <div className="mx-auto w-full max-w-[290px]">
+                <PhoneFrame>
+                  <s.Mock />
+                </PhoneFrame>
               </div>
               <div>
                 <Heading eyebrow={s.eyebrow} title={s.title} center={false} />
@@ -256,7 +255,11 @@ export function LandingPage() {
       {/* ── Desktop + reports ────────────────────────────────────────────── */}
       <Section>
         <Heading eyebrow="On the counter and on the laptop" title="Reports your CA will love" body="Sales, profit, expenses, stock value and GST — by day, month or any range. Open the same account on a laptop for the big picture." />
-        <BrowserFrame src={`${SHOT}/reports-desktop.jpg`} alt="Suvakta reports on a desktop browser" />
+        <div className="mx-auto max-w-4xl">
+          <BrowserFrame>
+            <ReportsMock />
+          </BrowserFrame>
+        </div>
       </Section>
 
       {/* ── Feature grid ─────────────────────────────────────────────────── */}
