@@ -26,7 +26,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { BRAND } from "@/lib/brand";
 import { BrowserFrame, PhoneFrame, VoiceWave } from "./frames";
-import { DashboardMock, InventoryMock, KhataMock, ReportsMock, VoiceConfirmMock } from "./mockups";
+import { DashboardMock, ExpenseMock, GstReportMock, InventoryMock, KhataMock, PurchaseMock, ReportsMock, SalesTodayMock, VoiceConfirmMock, VoiceListeningMock } from "./mockups";
 import { QuoteForm } from "./quote-form";
 
 const SAYINGS = ["“Aaj 20 Coke aur 10 Sprite biki”", "“Ramesh ne ₹500 diye”", "“Sharma se 2 crate Pepsi aayi”", "“Kaunsa maal khatam ho raha hai?”", "“Bijli ka bill 1200 diya”", "“Aaj kitna munafa hua?”"];
@@ -109,6 +109,22 @@ function Section({ id, children, className }: { id?: string; children: React.Rea
     <section id={id} className={`scroll-mt-20 px-4 py-20 sm:px-6 md:py-28 ${className ?? ""}`}>
       <div className="mx-auto max-w-6xl">{children}</div>
     </section>
+  );
+}
+
+function GalleryCard({ title, sub, Mock, wide }: { title: string; sub: string; Mock: () => React.ReactNode; wide?: boolean }) {
+  return (
+    <div className={`flex items-center gap-5 overflow-hidden rounded-3xl border bg-card p-6 ${wide ? "md:col-span-2" : ""}`}>
+      <div className="min-w-0 flex-1">
+        <h3 className="text-[18px] font-semibold">{title}</h3>
+        <p className="mt-1 text-[14px] leading-relaxed text-muted-foreground">{sub}</p>
+      </div>
+      <div className="w-[120px] shrink-0 sm:w-[132px]">
+        <PhoneFrame>
+          <Mock />
+        </PhoneFrame>
+      </div>
+    </div>
   );
 }
 
@@ -226,6 +242,36 @@ export function LandingPage() {
         </div>
       </Section>
 
+      {/* ── Voice demo strip ─────────────────────────────────────────────── */}
+      <section className="scroll-mt-20 bg-brand px-4 py-20 text-brand-foreground sm:px-6 md:py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="mx-auto mb-12 max-w-2xl text-center">
+            <p className="mb-3 text-[13px] font-semibold tracking-[0.14em] text-brand-foreground/70 uppercase">See it in action</p>
+            <h2 className="text-[32px] leading-[1.1] font-bold tracking-tight text-balance md:text-[44px]">Say it. See it. Done.</h2>
+            <p className="mt-4 text-[17px] text-brand-foreground/85">One sentence becomes a recorded sale — in three steps, with you in control the whole time.</p>
+          </div>
+          <div className="grid items-start gap-6 md:grid-cols-3">
+            {[
+              { n: "1", label: "You speak", Mock: VoiceListeningMock },
+              { n: "2", label: "Suvakta shows what it understood", Mock: VoiceConfirmMock },
+              { n: "3", label: "You confirm — it’s recorded", Mock: SalesTodayMock },
+            ].map((s) => (
+              <div key={s.n} className="flex flex-col items-center">
+                <div className="w-full max-w-[240px]">
+                  <PhoneFrame>
+                    <s.Mock />
+                  </PhoneFrame>
+                </div>
+                <p className="mt-5 flex items-center gap-2 text-[14.5px] font-medium">
+                  <span className="flex size-6 items-center justify-center rounded-full bg-white/15 text-[12px] font-bold">{s.n}</span>
+                  {s.label}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── Spotlights ───────────────────────────────────────────────────── */}
       <div className="bg-[linear-gradient(to_bottom,transparent,var(--muted)_15%,var(--muted)_85%,transparent)]">
         {SPOTLIGHTS.map((s, i) => (
@@ -252,13 +298,39 @@ export function LandingPage() {
         ))}
       </div>
 
-      {/* ── Desktop + reports ────────────────────────────────────────────── */}
-      <Section>
-        <Heading eyebrow="On the counter and on the laptop" title="Reports your CA will love" body="Sales, profit, expenses, stock value and GST — by day, month or any range. Open the same account on a laptop for the big picture." />
-        <div className="mx-auto max-w-4xl">
+      {/* ── App gallery (bento) ──────────────────────────────────────────── */}
+      <Section id="gallery">
+        <Heading eyebrow="Everything in one app" title="One app for the whole shop" body="Sales, purchases, expenses, khata and GST — every part of your business, a sentence away." />
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="flex flex-col items-center justify-end rounded-3xl border bg-gradient-to-b from-primary-soft/50 to-card p-6 md:row-span-2">
+            <div className="mb-5 text-center">
+              <h3 className="text-[20px] font-semibold">Purchases by voice</h3>
+              <p className="mt-1 text-[14px] text-muted-foreground">“Sharma se 2 crate Coke aayi” — stock and supplier balance updated.</p>
+            </div>
+            <div className="w-full max-w-[230px]">
+              <PhoneFrame>
+                <PurchaseMock />
+              </PhoneFrame>
+            </div>
+          </div>
+          <GalleryCard title="Expenses in seconds" sub="Rent, bijli, salary, transport — real net profit." Mock={ExpenseMock} />
+          <GalleryCard title="GST-ready, always" sub="CGST/SGST/IGST and net payable, calculated for you." Mock={GstReportMock} />
+          <GalleryCard title="Live inventory" sub="Low-stock alerts before you run out." Mock={InventoryMock} wide />
+        </div>
+      </Section>
+
+      {/* ── Works on every device ────────────────────────────────────────── */}
+      <Section className="bg-card/60">
+        <Heading eyebrow="On the counter and on the laptop" title="Works on every device" body="Bill from your phone at the counter, review the big picture on a laptop — one account, always in sync. Install it like an app; it even works offline." />
+        <div className="relative mx-auto max-w-4xl">
           <BrowserFrame>
             <ReportsMock />
           </BrowserFrame>
+          <div className="absolute -right-2 -bottom-8 hidden w-[150px] sm:block md:-right-6 md:w-[190px]">
+            <PhoneFrame>
+              <DashboardMock />
+            </PhoneFrame>
+          </div>
         </div>
       </Section>
 
@@ -334,6 +406,35 @@ export function LandingPage() {
           </p>
         </div>
       </section>
+
+      {/* ── Pricing teaser ───────────────────────────────────────────────── */}
+      <Section id="pricing">
+        <Heading eyebrow="Pricing" title="Plans that fit your shop" body="From a single kirana to a chain of outlets. Tell us your size and we’ll share a plan — no card needed to start." />
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            { name: "Single shop", for: "One kirana, paan or café", points: ["Voice billing & stock", "Khata & udhaar reminders", "GST-ready reports", "Works offline"] },
+            { name: "Multi-branch", for: "Owners with 2+ outlets", points: ["Everything in Single shop", "Each branch its own stock & khata", "Staff accounts & roles", "One owner dashboard"], featured: true },
+            { name: "Distributor", for: "Wholesale & supply", points: ["Everything in Multi-branch", "Supplier ledgers & purchases", "Bulk import / export", "Priority onboarding"] },
+          ].map((p) => (
+            <div key={p.name} className={`relative flex flex-col rounded-3xl border p-6 ${p.featured ? "border-primary/40 bg-primary-soft/40 shadow-lift" : "bg-card"}`}>
+              {p.featured && <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold text-primary-foreground">Most popular</span>}
+              <h3 className="text-[20px] font-bold">{p.name}</h3>
+              <p className="mt-1 text-[13.5px] text-muted-foreground">{p.for}</p>
+              <ul className="mt-5 flex-1 space-y-2.5">
+                {p.points.map((pt) => (
+                  <li key={pt} className="flex items-start gap-2.5 text-[14.5px]">
+                    <CheckCircle2Icon className="mt-0.5 size-4.5 shrink-0 text-primary" aria-hidden="true" /> {pt}
+                  </li>
+                ))}
+              </ul>
+              <Button asChild variant={p.featured ? "default" : "outline"} className="mt-6 w-full">
+                <Link href="#quote">Get a quote</Link>
+              </Button>
+            </div>
+          ))}
+        </div>
+        <p className="mt-6 text-center text-[13.5px] text-muted-foreground">Transparent pricing shared on your call. No hidden fees, cancel anytime.</p>
+      </Section>
 
       {/* ── FAQ ──────────────────────────────────────────────────────────── */}
       <Section id="faq">

@@ -285,3 +285,178 @@ export function ReportsMock() {
     </div>
   );
 }
+
+// ── Additional screens ────────────────────────────────────────────────────────
+
+/** The listening state: mic active, live interim transcript, waveform. */
+export function VoiceListeningMock() {
+  return (
+    <div className="flex h-full flex-col bg-muted/40">
+      <StatusBar title="Talk to Suvakta" />
+      <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
+        <span className="relative flex size-24 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <span className="absolute inset-0 animate-ping rounded-full bg-primary/40" />
+          <MicIcon className="size-9" />
+        </span>
+        <div className="flex h-8 items-end gap-1.5">
+          {[40, 70, 95, 55, 80, 45, 90, 60, 75].map((h, i) => (
+            <span key={i} className="w-1.5 rounded-full bg-primary" style={{ height: `${h}%`, opacity: 0.4 + (i % 3) * 0.2 }} />
+          ))}
+        </div>
+        <div>
+          <p className="text-[12px] font-medium text-primary">Sun raha hoon…</p>
+          <p className="mt-1 text-[16px] font-semibold">“Ramesh ko paanch Coke udhaar…”</p>
+        </div>
+      </div>
+      <p className="pb-10 text-center text-[11px] text-muted-foreground">Tap to stop · or just pause</p>
+    </div>
+  );
+}
+
+/** Supplier purchase understood. */
+export function PurchaseMock() {
+  return (
+    <div className="flex h-full flex-col bg-muted/40">
+      <StatusBar title="Talk to Suvakta" />
+      <div className="px-4 pt-2 text-center text-[12px] text-muted-foreground">“Sharma se 2 crate Coke aayi”</div>
+      <div className="flex-1 px-4 pt-3">
+        <div className="overflow-hidden rounded-2xl border bg-card shadow-lift">
+          <div className="border-b bg-muted/40 px-4 py-2.5">
+            <p className="text-[10.5px] font-medium text-muted-foreground">Purchase · Sharma Wholesale</p>
+            <p className="text-[15px] font-semibold">Stock received</p>
+          </div>
+          <div className="space-y-2 px-4 py-3">
+            <div className="flex items-baseline justify-between">
+              <div>
+                <p className="text-[13.5px] font-semibold">Coke 500ml</p>
+                <p className="text-[11px] text-muted-foreground">2 crate × 24 = 48 bottle</p>
+              </div>
+              <p className="text-[13.5px] font-medium">₹1,296</p>
+            </div>
+            <div className="rounded-xl bg-muted/60 p-2.5 text-[12px]">
+              <div className="flex items-center justify-between">
+                <span>Coke 500ml stock</span>
+                <span className="flex items-center gap-1">
+                  34 <ArrowRightIcon className="size-3 text-muted-foreground" /> <span className="font-semibold text-success">82</span>
+                </span>
+              </div>
+            </div>
+            <div className="flex justify-between text-[11px] text-muted-foreground">
+              <span>Supplier balance</span>
+              <span>₹1,296 payable</span>
+            </div>
+          </div>
+          <div className="border-t p-3">
+            <div className="flex h-10 items-center justify-center gap-2 rounded-xl bg-primary text-[13.5px] font-semibold text-primary-foreground">
+              <CheckCircle2Icon className="size-4" /> Confirm Purchase
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ExpenseMock() {
+  const rows = [
+    { cat: "Electricity", note: "Bijli bill", amt: "₹1,200", icon: "💡" },
+    { cat: "Rent", note: "Dukaan kiraya", amt: "₹8,000", icon: "🏠" },
+    { cat: "Transport", note: "Tempo bhada", amt: "₹450", icon: "🚚" },
+    { cat: "Salary", note: "Staff — Raju", amt: "₹9,000", icon: "💰" },
+  ];
+  return (
+    <div className="flex h-full flex-col">
+      <StatusBar title="Expenses" />
+      <div className="px-4 pt-2">
+        <p className="text-[18px] font-bold">Expenses</p>
+        <div className="mt-2 rounded-2xl border bg-card p-3">
+          <p className="text-[11px] text-muted-foreground">This month</p>
+          <p className="text-[22px] font-bold">₹38,200</p>
+        </div>
+      </div>
+      <div className="mt-2 flex-1 divide-y overflow-hidden border-t">
+        {rows.map((r) => (
+          <div key={r.note} className="flex items-center gap-3 px-4 py-2.5">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-muted text-[16px]">{r.icon}</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[13.5px] font-semibold">{r.cat}</p>
+              <p className="text-[11px] text-muted-foreground">{r.note}</p>
+            </div>
+            <p className="text-[13.5px] font-semibold">{r.amt}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function GstReportMock() {
+  return (
+    <div className="flex h-full flex-col">
+      <StatusBar title="GST Summary" />
+      <div className="flex-1 space-y-3 px-4 pt-2">
+        <div>
+          <p className="text-[12px] text-muted-foreground">GST · This month</p>
+          <p className="text-[18px] font-bold">Tax summary</p>
+        </div>
+        <div className="rounded-2xl border bg-card p-3.5">
+          <p className="text-[11px] text-muted-foreground">Output tax (sales)</p>
+          <p className="text-[19px] font-bold">₹24,180</p>
+          <div className="mt-2 grid grid-cols-3 gap-2 text-center text-[11px]">
+            {[
+              { k: "CGST", v: "₹10,090" },
+              { k: "SGST", v: "₹10,090" },
+              { k: "IGST", v: "₹4,000" },
+            ].map((c) => (
+              <div key={c.k} className="rounded-lg bg-muted py-1.5">
+                <p className="text-muted-foreground">{c.k}</p>
+                <p className="font-semibold">{c.v}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-2xl border bg-card p-3.5">
+          <p className="text-[11px] text-muted-foreground">Input tax (purchases)</p>
+          <p className="text-[19px] font-bold">₹16,420</p>
+        </div>
+        <div className="flex items-center justify-between rounded-2xl bg-primary-soft px-4 py-3">
+          <span className="text-[12.5px] font-medium text-primary-soft-foreground">Net GST payable</span>
+          <span className="text-[18px] font-bold text-primary-soft-foreground">₹7,760</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function SalesTodayMock() {
+  const bills = [
+    { no: "#1042", items: "Coke ×2, Lays ×1", amt: "₹120", pay: "UPI" },
+    { no: "#1041", items: "Parle-G ×5", amt: "₹50", pay: "Cash" },
+    { no: "#1040", items: "Maggi ×3, Amul", amt: "₹165", pay: "Udhaar" },
+    { no: "#1039", items: "Bisleri ×6", amt: "₹120", pay: "Cash" },
+    { no: "#1038", items: "Tata Salt ×2", amt: "₹56", pay: "UPI" },
+  ];
+  const tone: Record<string, string> = { UPI: "bg-info-soft text-info", Cash: "bg-success-soft text-success", Udhaar: "bg-warning-soft text-warning-foreground" };
+  return (
+    <div className="flex h-full flex-col">
+      <StatusBar title="Sales" />
+      <div className="px-4 pt-2">
+        <p className="text-[18px] font-bold">Today’s sales</p>
+        <p className="text-[12px] text-muted-foreground">82 bills · ₹18,420</p>
+      </div>
+      <div className="mt-2 flex-1 divide-y overflow-hidden border-t">
+        {bills.map((b) => (
+          <div key={b.no} className="flex items-center gap-3 px-4 py-2.5">
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-semibold">
+                {b.no} <span className="font-normal text-muted-foreground">· {b.items}</span>
+              </p>
+            </div>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${tone[b.pay]}`}>{b.pay}</span>
+            <p className="w-12 text-right text-[13px] font-bold">{b.amt}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
