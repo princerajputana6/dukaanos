@@ -189,3 +189,8 @@ Recommend **2a** first (smaller, strengthens an existing advertised claim); 2b n
 - services/reorder.ts + `GET /inventory/reorder`: per tracked product, average daily demand over 30 days, days of cover, stockout risk, and a suggested quantity to reach lead+safety cover — subtracting stock already incoming on open POs and rounding up to the case pack. Data-sufficiency gate: with < 3 sale-days it falls back to the low-stock threshold and labels it "using alert level" rather than inventing a forecast. Suggestion only.
 - UI: upgraded the Inventory → Reorder tab with multi-select → Create PO draft (one PO per supplier, reusing Phase 2b). No-supplier rows can't be drafted.
 - Verified in-browser. `pnpm check` → 20 files/159 tests, build ok.
+
+### Phase 3b — Anomaly insights (Release C) — shipped (15 Oct 2026)
+- services/insights.ts + `GET /reports/insights` (reports.view): grounded, rule-based cards — below-cost products that are selling, best-sellers out of stock, dead/slow stock (value tied up), heavy discounts (7d), return/reversal spikes (7d), cash mismatches at shift close (7d), and ageing receivables (>30d). Every card carries its measured evidence; read-only (never changes data).
+- UI: /insights page with severity-coloured cards (title, why it matters, evidence, action link), client-side dismiss (localStorage) + "show dismissed"; nav entry under Reports.
+- Verified in-browser: real "6 products not selling — ₹5,332 of stock with no sales in 30 days" card, dismiss → "All clear". pnpm check → 21 files/162 tests, build ok.

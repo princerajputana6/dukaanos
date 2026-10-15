@@ -10,6 +10,7 @@ import * as members from "@/server/services/members";
 import * as notif from "@/server/services/notifications";
 import * as reports from "@/server/services/reports";
 import * as shift from "@/server/services/shift";
+import { businessInsights } from "@/server/services/insights";
 import { globalSearch } from "@/server/services/search";
 import { AppError } from "@/server/lib/errors";
 import { body, csv, idempotencyKey, ok, query } from "../respond";
@@ -36,6 +37,7 @@ export const reportRoutes = bizRouter()
     if (c.env.FLAG_REPORTS_ENABLED === "false") throw new AppError("FEATURE_DISABLED", "Reports are turned off.");
     return requirePerm("reports.view")(c, next);
   })
+  .get("/insights", async (c) => ok(c, await businessInsights(c.get("ctx"))))
   .get("/sales", async (c) => ok(c, await reports.salesReport(c.get("ctx"), query(c, dateRangeSchema))))
   .get("/profit", async (c) => ok(c, await reports.profitReport(c.get("ctx"), query(c, dateRangeSchema))))
   .get("/expenses", async (c) => ok(c, await reports.expensesReport(c.get("ctx"), query(c, dateRangeSchema))))
