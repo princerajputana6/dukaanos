@@ -3,29 +3,35 @@ import { cn } from "@/lib/utils";
 
 /**
  * Suvakta (सुवक्ता, "the eloquent speaker") mark.
- * Five rounded bars rise like a voice equalizer and a growth chart at once — voice-first,
- * business-forward — inside a soft squircle. The tallest bar carries a "voice pulse" dot.
+ *
+ * A speech bubble — the conversation at the heart of the product — with three rising bars inside
+ * that read as both a voice equalizer and a growth chart, and a voice-pulse dot above the peak.
+ * The whole idea in one glyph: *talk to your shop, and it grows.*
  */
 export function LogoMark({ className, title = "Suvakta" }: { className?: string; title?: string }) {
-  const gid = React.useId();
+  const g = React.useId();
   return (
     <svg viewBox="0 0 40 40" className={cn("size-8", className)} role="img" aria-label={title}>
       <defs>
-        <linearGradient id={`${gid}-bg`} x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="oklch(0.56 0.11 172)" />
-          <stop offset="1" stopColor="oklch(0.44 0.1 196)" />
+        <linearGradient id={`${g}-bg`} x1="4" y1="2" x2="36" y2="38" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#1aa184" />
+          <stop offset="1" stopColor="#0a6ea0" />
         </linearGradient>
       </defs>
-      <rect width="40" height="40" rx="11" fill={`url(#${gid}-bg)`} />
-      {/* Equalizer / growth bars, left→right rising. */}
-      <g className="fill-white">
-        <rect x="8.5" y="22.5" width="4.2" height="9" rx="2.1" />
-        <rect x="15" y="18" width="4.2" height="13.5" rx="2.1" fillOpacity="0.9" />
-        <rect x="21.5" y="13" width="4.2" height="18.5" rx="2.1" fillOpacity="0.8" />
-        <rect x="28" y="20" width="4.2" height="11.5" rx="2.1" fillOpacity="0.72" />
+      <rect width="40" height="40" rx="11" fill={`url(#${g}-bg)`} />
+      {/* Speech bubble with a tail at the bottom-left. */}
+      <path
+        d="M11 8.5h18a4.5 4.5 0 0 1 4.5 4.5v8a4.5 4.5 0 0 1-4.5 4.5H19l-5.8 4.4.7-4.4H11a4.5 4.5 0 0 1-4.5-4.5v-8A4.5 4.5 0 0 1 11 8.5Z"
+        className="fill-white"
+      />
+      {/* Equalizer / growth bars, rising left→right. */}
+      <g fill="#0f8f74">
+        <rect x="12.5" y="18.4" width="3" height="5.6" rx="1.5" />
+        <rect x="18.5" y="15" width="3" height="9" rx="1.5" />
+        <rect x="24.5" y="11.8" width="3" height="12.2" rx="1.5" />
       </g>
-      {/* Voice pulse on the peak bar. */}
-      <circle cx="23.6" cy="9.4" r="2.4" className="fill-white" />
+      {/* Voice pulse above the peak bar. */}
+      <circle cx="26" cy="9.2" r="2" fill="#0f8f74" />
     </svg>
   );
 }

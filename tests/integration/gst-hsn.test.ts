@@ -8,7 +8,7 @@ async function getText(path: string, cookie?: string) {
   return { status: res.status, text: await res.text() };
 }
 
-const today = new Date().toISOString().slice(0, 10);
+const today = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10); // IST calendar date
 const range = `?from=${today}&to=${today}`;
 
 describe("GST HSN summary (GSTR-1 HSN table)", () => {

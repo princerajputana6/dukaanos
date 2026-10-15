@@ -41,6 +41,7 @@ const UNDO_WORDS = new Set(["undo", "cancel", "galti", "galat", "hata", "hatao",
 const LAST_WORDS = new Set(["last", "pichla", "pichli", "pichle", "aakhri", "akhri", "previous", "abhi"]);
 const QUESTION_WORDS = new Set(["kitna", "kitni", "kitne", "kya", "kaunsa", "kaunse", "kaun", "konsa", "konse", "how", "what", "which", "batao", "bata", "bataye", "dikhao", "show", "tell", "check", "kaisa", "kaisi", "kaise"]);
 const STOCK_WORDS = new Set(["stock", "bacha", "bachi", "bache", "bachaa", "available", "inventory", "maal", "left", "remaining"]);
+const TOTAL_WORDS = new Set(["total", "kul", "saara", "sara", "poora", "pura", "sab", "sabhi", "overall", "value", "worth", "inventory", "warehouse"]);
 const PROFIT_WORDS = new Set(["profit", "munafa", "munaafa", "fayda", "faayda", "kamai", "margin", "earning", "earnings"]);
 const LOW_WORDS = new Set(["low", "khatam", "kam", "short", "finish", "finished", "reorder", "mangana", "mangwana"]);
 const OUTSTANDING_WORDS = new Set(["outstanding", "baki", "baaki", "due", "dues", "pending", "lena", "dena", "udhaar", "udhar"]);
@@ -67,7 +68,7 @@ const UNITS: Record<string, string> = {
 };
 const SIZE_UNITS = new Set(["ml", "l", "g", "kg", "gm"]);
 const FILLERS = new Set([
-  "aaj", "aj", "today", "kal", "yesterday", "abhi", "maine", "mene", "humne", "hamne", "hum", "main", "mai", "me", "mein", "ne", "ka", "ki", "ke", "ko", "se", "par", "pe", "hai", "hain", "he", "ho", "tha", "thi", "the", "gaya", "gayi", "gaye", "gai", "di", "diya", "diye", "de", "do", "dena", "karo", "kar", "kardo", "kiya", "kiye", "ki", "hua", "hui", "hue", "a", "an", "the", "of", "please", "plz", "pls", "bhai", "bhaiya", "ji", "total", "sirf", "bas", "wala", "wali", "wale", "vala", "vali", "vale", "ek", "sab", "saare", "sare", "is", "iss", "us", "to", "toh", "for", "rs", "rupaye", "rupay", "rupees", "rupee", "rupiya", "rupya", "rupiye", "₹", "sold", "sell", "sale", "likh", "likho", "likhdo", "naam", "khate", "khata", "pe", "ab", "fir", "phir", "aur",
+  "aaj", "aj", "today", "kal", "yesterday", "abhi", "maine", "mene", "humne", "hamne", "hum", "main", "mai", "me", "mein", "mere", "meri", "mera", "paas", "pass", "apne", "apna", "ne", "ka", "ki", "ke", "ko", "se", "par", "pe", "hai", "hain", "he", "ho", "tha", "thi", "the", "gaya", "gayi", "gaye", "gai", "di", "diya", "diye", "de", "do", "dena", "karo", "kar", "kardo", "kiya", "kiye", "ki", "hua", "hui", "hue", "a", "an", "the", "of", "please", "plz", "pls", "bhai", "bhaiya", "ji", "total", "sirf", "bas", "wala", "wali", "wale", "vala", "vali", "vale", "ek", "sab", "saare", "sare", "is", "iss", "us", "to", "toh", "for", "rs", "rupaye", "rupay", "rupees", "rupee", "rupiya", "rupya", "rupiye", "₹", "sold", "sell", "sale", "likh", "likho", "likhdo", "naam", "khate", "khata", "pe", "ab", "fir", "phir", "aur",
 ]);
 
 const NUMBER_WORDS: Record<string, number> = {
@@ -194,7 +195,7 @@ function nameBefore(tokens: Tok[], particles: string[], original: string[]): str
 function isKeyword(t: string): boolean {
   return (
     SALE_VERBS.has(t) || PURCHASE_VERBS.has(t) || PAYMENT_VERBS.has(t) || CREDIT_WORDS.has(t) || EXPENSE_WORDS.has(t) || UNDO_WORDS.has(t) ||
-    QUESTION_WORDS.has(t) || STOCK_WORDS.has(t) || PROFIT_WORDS.has(t) || CUSTOMER_WORDS.has(t) || SUPPLIER_WORDS.has(t) || UPI_WORDS.has(t) ||
+    QUESTION_WORDS.has(t) || STOCK_WORDS.has(t) || TOTAL_WORDS.has(t) || PROFIT_WORDS.has(t) || CUSTOMER_WORDS.has(t) || SUPPLIER_WORDS.has(t) || UPI_WORDS.has(t) ||
     CASH_WORDS.has(t) || CARD_WORDS.has(t) || NEW_WORDS.has(t) || DAMAGE_WORDS.has(t) || RETURN_WORDS.has(t) || t === "?"
   );
 }
@@ -294,7 +295,7 @@ function paymentMethod(tokens: string[]): "CASH" | "UPI" | "CARD" | "CREDIT" | n
 }
 
 function result(intent: ParsedIntent["intent"], confidence: number, language: Lang, entities: ParsedIntent["entities"], clarification: string | null = null): ParsedIntent {
-  const mutating = !["CHECK_STOCK", "CHECK_SALES", "CHECK_PROFIT", "CHECK_OUTSTANDING", "LOW_STOCK_QUERY", "DAILY_SUMMARY", "MONTHLY_SUMMARY", "SEARCH_PRODUCT", "SEARCH_CUSTOMER", "SEARCH_SUPPLIER", "UNKNOWN"].includes(intent);
+  const mutating = !["CHECK_STOCK", "CHECK_INVENTORY", "CHECK_SALES", "CHECK_PROFIT", "CHECK_OUTSTANDING", "LOW_STOCK_QUERY", "DAILY_SUMMARY", "MONTHLY_SUMMARY", "SEARCH_PRODUCT", "SEARCH_CUSTOMER", "SEARCH_SUPPLIER", "UNKNOWN"].includes(intent);
   return { intent, confidence, language, entities, requires_confirmation: mutating, clarification };
 }
 
@@ -342,6 +343,10 @@ export function parseWithRules(input: string): ParsedIntent {
     if (hasAny(ts, STOCK_WORDS) || ts.some((t) => ["kitne", "kitni", "kitna"].includes(t))) {
       const items = extractItems(tokens, originalWords, new Set());
       const q = items.find((i) => i.query)?.query ?? null;
+      // "total stock", "kitna maal hai", "inventory value" → whole-shop inventory, not one product.
+      if (!q && (hasAny(ts, TOTAL_WORDS) || ts.includes("inventory") || ts.includes("warehouse"))) {
+        return result("CHECK_INVENTORY", 0.9, language, {});
+      }
       return result("CHECK_STOCK", q ? 0.92 : 0.8, language, { items: q ? [{ query: q, quantity: null, unit: null, price_rupees: null }] : [] });
     }
     if (hasAny(ts, SEARCH_WORDS)) {
@@ -473,11 +478,12 @@ export function parseWithRules(input: string): ParsedIntent {
     }
   }
 
-  // ── Bare stock question without "?" ("coke stock") ──────────────────────
-  if (hasAny(ts, STOCK_WORDS)) {
+  // ── Bare stock question without "?" ("coke stock", "inventory value") ────
+  if (hasAny(ts, STOCK_WORDS) || ts.includes("inventory")) {
     const items = extractItems(tokens, originalWords, new Set(["stock"]));
     const q = items.find((i) => i.query)?.query ?? null;
     if (q) return result("CHECK_STOCK", 0.8, language, { items: [{ query: q, quantity: null, unit: null, price_rupees: null }] });
+    if (hasAny(ts, TOTAL_WORDS) || ts.includes("inventory")) return result("CHECK_INVENTORY", 0.85, language, {});
   }
 
   // ── Implicit sale: "Two water bottle", "3 Maggi" ────────────────────────

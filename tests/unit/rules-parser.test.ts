@@ -170,5 +170,13 @@ describe("rules parser — Devanagari transcripts (server speech / Whisper)", ()
     expect(p2("bijli 500").intent).toBe("CREATE_EXPENSE");
     expect(p2("chai 20 rupaye").intent).toBe("CREATE_EXPENSE");
   });
+
+  it("routes whole-shop stock questions to CHECK_INVENTORY", () => {
+    for (const t of ["total stock kitna hai", "kitna maal hai total", "inventory value", "mere paas kul kitna stock hai"]) {
+      expect(p2(t).intent, t).toBe("CHECK_INVENTORY");
+    }
+    // A specific product stays CHECK_STOCK.
+    expect(p2("coke kitni bachi hai").intent).toBe("CHECK_STOCK");
+  });
 });
 

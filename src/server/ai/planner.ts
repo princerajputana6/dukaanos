@@ -15,7 +15,7 @@ import { createSaleSchema, createPurchaseSchema } from "@/schemas/sales";
 import type { ServiceContext } from "@/server/services/context";
 import { previewPurchase } from "@/server/services/purchases";
 import { findLastSale, previewSale } from "@/server/services/sales";
-import { lowStockProducts } from "@/server/services/inventory";
+import { inventorySummary, lowStockProducts } from "@/server/services/inventory";
 import { outstandingTotals, periodRange, profitReport, salesTotals, topProducts } from "@/server/services/reports";
 import { and, desc, eq, gte } from "drizzle-orm";
 import { expenses, purchases } from "@/server/db/schema";
@@ -129,7 +129,6 @@ export async function plan(ctx: ServiceContext, catalog: Catalog, input: PlanInp
 
   /** Resolves a product query, honouring earlier clarification choices. */
   const autoPicks: AutoPick[] = [];
-  const popularityOf = new Map(catalog.products.map((c) => [c.value.id, c.popularity ?? 0]));
   const sellIntent = input.parsed.intent === "CREATE_SALE" || (input.parsed.intent === "ADJUST_STOCK" && e.stock_direction === "decrease");
 
   /**
@@ -150,21 +149,16 @@ export async function plan(ctx: ServiceContext, catalog: Catalog, input: PlanInp
       if (pick) reason = L(lang, "your usual", "aap aksar yahi lete hain");
     }
     if (!pick && sellIntent) {
+      // Auto-pick only when the choice isn't genuinely ambiguous: exactly one variant is actually
+      // in stock. With several in stock we ask (don't guess a size for the shopkeeper).
       const inStock = options.filter((o) => !o.trackStock || o.currentStockMilli > 0);
       if (inStock.length === 1) {
         pick = inStock[0];
         reason = L(lang, "the only one in stock", "sirf yahi stock mein hai");
       }
     }
-    if (!pick) {
-      const pops = options.map((o) => popularityOf.get(o.id) ?? 0);
-      const total = pops.reduce((a, b) => a + b, 0);
-      const best = Math.max(...pops);
-      if (best > 0 && best / total >= 0.6) {
-        pick = options[pops.indexOf(best)];
-        reason = L(lang, "your best-seller", "sabse zyada bikne wala");
-      }
-    }
+    // When multiple variants are in stock and the shop has no learned preference, fall through to a
+    // clarification question rather than silently choosing a best-seller.
     if (!pick) return null;
     autoPicks.push({ slot, query, chosenId: pick.id, chosenName: pick.name, reason, options: options.map(productOption) });
     return pick;
@@ -735,6 +729,30 @@ export async function plan(ctx: ServiceContext, catalog: Catalog, input: PlanInp
                   (top.length ? `\n${top.map((t) => `• ${t.value.name}: ${formatMoney(t.value.balancePaise, { compact: true })}`).join("\n")}` : ""),
             data: o,
             actions: [{ label: L(lang, "View Khata", "Khata dekhein"), href: "/customers?filter=outstanding" }],
+          },
+        };
+      }
+
+      case "CHECK_INVENTORY": {
+        const canMoney = ctx.permissions.has("reports.view");
+        const [sum, low] = await Promise.all([inventorySummary(ctx), lowStockProducts(ctx, 20)]);
+        refs.productIds = low.slice(0, 5).map((l) => l.id);
+        const valueLine = canMoney
+          ? L(lang, `You have about ${formatMoney(sum.costValuePaise, { compact: true })} of stock`, `Aapke paas lagbhag ${formatMoney(sum.costValuePaise, { compact: true })} ka maal hai`)
+          : L(lang, `You have ${sum.totalProducts} products in stock`, `Aapke paas ${sum.totalProducts} products hain`);
+        const statusLine =
+          sum.outOfStock || sum.lowStock
+            ? L(lang, ` — ${sum.outOfStock} out of stock, ${sum.lowStock} running low.`, ` — ${sum.outOfStock} khatam, ${sum.lowStock} kam ho rahe hain.`)
+            : L(lang, ` across ${sum.totalProducts} products — all well stocked.`, ` ${sum.totalProducts} products mein — sab theek hai.`);
+        const needs = low.length ? L(lang, ` Want me to show what to reorder?`, ` Kya mangwane wali cheezein dikhaun?`) : "";
+        return {
+          type: "answer",
+          answer: {
+            message: valueLine + statusLine + needs,
+            data: { summary: sum, low },
+            actions: low.length
+              ? [{ label: L(lang, "What to reorder", "Kya mangwayein"), href: "/inventory?tab=reorder" }, { label: L(lang, "View inventory", "Inventory dekhein"), href: "/inventory" }]
+              : [{ label: L(lang, "View inventory", "Inventory dekhein"), href: "/inventory" }],
           },
         };
       }

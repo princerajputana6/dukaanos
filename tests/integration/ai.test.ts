@@ -218,5 +218,29 @@ describe("AI assistant: voice → understand → confirm → execute", () => {
     expect(r.body.data.proposal.needsReview).toBe(false);
     expect(r.body.data.proposal.command.items[0]).toMatchObject({ productId: byName("Bisleri Water 1L"), quantityMilli: 2000 });
   });
+
+  it("still asks which variant even when one size is the clear best-seller (never silently picks)", async () => {
+    const { cookie, byName } = await setup();
+    const coke500 = byName("Coke 500ml");
+    // Make Coke 500ml the dominant seller.
+    for (let i = 0; i < 4; i++) {
+      const s = await say(cookie, "2 Coke 500ml biki");
+      await call("POST", `/ai/interactions/${s.body.data.interactionId}/confirm`, { cookie });
+    }
+    // A bare "Coke" should still ask, not auto-pick the best-seller.
+    const r = await say(cookie, "5 Coke biki");
+    expect(r.body.data.status).toBe("NEEDS_CLARIFICATION");
+    expect(r.body.data.clarification.options.map((o: { label: string }) => o.label)).toEqual(expect.arrayContaining(["Coke 250ml", "Coke 500ml"]));
+    void coke500;
+  });
+
+  it("answers a whole-shop inventory question with value and what is low", async () => {
+    const { cookie } = await setup();
+    const r = await say(cookie, "total kitna maal hai");
+    expect(r.body.data.status).toBe("ANSWERED");
+    expect(r.body.data.message).toMatch(/stock|maal/i);
+    // Mentions a rupee value (owner has reports.view).
+    expect(r.body.data.message).toMatch(/₹/);
+  });
 });
 
