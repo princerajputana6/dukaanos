@@ -919,3 +919,35 @@ export const aiBudgets = sqliteTable("ai_budgets", {
   updatedBy: text("updated_by"),
   updatedAt: updatedAt(),
 });
+
+/** A physical stock-count session: expected vs counted for many products, applied atomically. */
+export const stockCounts = sqliteTable(
+  "stock_counts",
+  {
+    id: id(),
+    businessId: businessId(),
+    status: text("status").notNull().default("COMPLETED"),
+    note: text("note"),
+    linesCount: integer("lines_count").notNull().default(0),
+    diffCount: integer("diff_count").notNull().default(0),
+    netDeltaMilli: integer("net_delta_milli").notNull().default(0),
+    createdBy: text("created_by"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("stock_counts_business_created_idx").on(t.businessId, t.createdAt)],
+);
+
+export const stockCountLines = sqliteTable(
+  "stock_count_lines",
+  {
+    id: id(),
+    stockCountId: text("stock_count_id").notNull(),
+    businessId: businessId(),
+    productId: text("product_id").notNull(),
+    expectedMilli: integer("expected_milli").notNull(),
+    countedMilli: integer("counted_milli").notNull(),
+    diffMilli: integer("diff_milli").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("stock_count_lines_count_idx").on(t.stockCountId)],
+);

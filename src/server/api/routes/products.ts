@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { adjustStockSchema, listMovementsSchema } from "@/schemas/inventory";
+import { adjustStockSchema, listMovementsSchema, stockCountSchema, transferStockSchema } from "@/schemas/inventory";
 import { createCategorySchema, createProductSchema, importProductsSchema, listProductsSchema, updateProductSchema } from "@/schemas/products";
 import { AppError } from "@/server/lib/errors";
 import * as inventory from "@/server/services/inventory";
+import * as stockCount from "@/server/services/stock-count";
 import * as productsSvc from "@/server/services/products";
 import { todayIst } from "@/lib/dates";
 import { body, csv, idempotencyKey, ok, query } from "../respond";
@@ -47,7 +48,11 @@ export const inventoryRoutes = bizRouter()
   .get("/", async (c) => ok(c, await inventory.inventorySummary(c.get("ctx"))))
   .get("/low-stock", async (c) => ok(c, await inventory.lowStockProducts(c.get("ctx"))))
   .get("/movements", async (c) => ok(c, await inventory.listMovements(c.get("ctx"), query(c, listMovementsSchema))))
-  .post("/adjust", requirePerm("inventory.adjust"), async (c) => ok(c, await inventory.adjustStock(c.get("ctx"), await body(c, adjustStockSchema), idempotencyKey(c)), 201));
+  .post("/adjust", requirePerm("inventory.adjust"), async (c) => ok(c, await inventory.adjustStock(c.get("ctx"), await body(c, adjustStockSchema), idempotencyKey(c)), 201))
+  .get("/counts", async (c) => ok(c, await stockCount.listStockCounts(c.get("ctx"))))
+  .get("/counts/:id", async (c) => ok(c, await stockCount.getStockCount(c.get("ctx"), c.req.param("id"))))
+  .post("/counts", requirePerm("inventory.adjust"), async (c) => ok(c, await stockCount.createStockCount(c.get("ctx"), await body(c, stockCountSchema), idempotencyKey(c)), 201))
+  .post("/transfers", requirePerm("inventory.adjust"), async (c) => ok(c, await stockCount.transferStock(c.get("ctx"), await body(c, transferStockSchema), idempotencyKey(c)), 201));
 
 /** Serves business-scoped files from R2 (auth + business prefix enforced). */
 export const fileRoutes = bizRouter().get("/*", async (c) => {

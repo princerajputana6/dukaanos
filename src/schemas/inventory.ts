@@ -25,3 +25,24 @@ export const listMovementsSchema = z.object({
   cursor: z.string().max(20).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(30),
 });
+
+/** A physical stock-count session. `countedMilli` may be 0 (counted none). */
+export const stockCountSchema = z.object({
+  note: optionalText(200),
+  lines: z
+    .array(z.object({ productId: idSchema, countedMilli: z.number().int().min(0).max(1_000_000_000) }))
+    .min(1, "Count at least one product")
+    .max(1000, "Too many lines in one count"),
+});
+export type StockCountInput = z.input<typeof stockCountSchema>;
+
+/** Branch-to-branch stock transfer. */
+export const transferStockSchema = z.object({
+  toBusinessId: idSchema,
+  note: optionalText(200),
+  lines: z
+    .array(z.object({ productId: idSchema, quantityMilli: z.number().int().positive().max(1_000_000_000) }))
+    .min(1, "Add at least one product")
+    .max(200, "Too many lines in one transfer"),
+});
+export type TransferStockInput = z.input<typeof transferStockSchema>;

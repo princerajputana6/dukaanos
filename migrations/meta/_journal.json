@@ -50,6 +50,13 @@
       "when": 1792056563775,
       "tag": "0006_ai_usage",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1792057269992,
+      "tag": "0007_stock_counts",
+      "breakpoints": true
     }
   ]
 }

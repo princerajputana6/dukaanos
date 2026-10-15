@@ -91,7 +91,7 @@ export type SettlementMethod = (typeof SETTLEMENT_METHODS)[number];
 
 export const DEFAULT_EXPENSE_CATEGORIES = ["Rent", "Electricity", "Salary", "Transport", "Maintenance", "Marketing", "Other"] as const;
 
-export const MOVEMENT_TYPES = ["OPENING", "PURCHASE", "SALE", "ADJUSTMENT", "RETURN", "DAMAGE", "REVERSAL"] as const;
+export const MOVEMENT_TYPES = ["OPENING", "PURCHASE", "SALE", "ADJUSTMENT", "RETURN", "DAMAGE", "REVERSAL", "COUNT", "TRANSFER_IN", "TRANSFER_OUT"] as const;
 export type MovementType = (typeof MOVEMENT_TYPES)[number];
 export const MOVEMENT_LABELS: Record<MovementType, string> = {
   OPENING: "Opening stock",
@@ -101,6 +101,9 @@ export const MOVEMENT_LABELS: Record<MovementType, string> = {
   RETURN: "Return",
   DAMAGE: "Damage",
   REVERSAL: "Reversal",
+  COUNT: "Stock count",
+  TRANSFER_IN: "Transfer in",
+  TRANSFER_OUT: "Transfer out",
 };
 /** Manual stock adjustment reasons exposed in the UI. */
 export const ADJUSTMENT_TYPES = ["ADJUSTMENT", "RETURN", "DAMAGE"] as const;
