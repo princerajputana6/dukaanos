@@ -8,6 +8,8 @@ distributors…). The core loop is **VOICE → UNDERSTAND → CONFIRM → EXECUT
 This document is the source of truth for how the system is put together. If code and this
 document disagree, one of them is a bug.
 
+> **Phase 0 (15 Oct 2026):** see [CURRENT_STATE_AUDIT.md](CURRENT_STATE_AUDIT.md) for verified feature status, [DATA_MODEL.md](DATA_MODEL.md), [AI_COST_MODEL.md](AI_COST_MODEL.md) and [TEST_STRATEGY.md](TEST_STRATEGY.md). Store is Cloudflare **D1 (SQLite)**; the D1-vs-Postgres decision is a documented watch-item, not a planned migration (audit §7).
+
 ---
 
 ## 1. System overview

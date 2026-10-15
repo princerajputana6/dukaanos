@@ -127,3 +127,31 @@ A feature counts as done only when it meets the Definition of Done in the produc
 3. OTP / WhatsApp login + reset delivery (`MessageDelivery` interface is ready).
 4. Printable/shareable GST invoice PDF and thermal-printer layout.
 5. Barcode scanning via camera (`BarcodeDetector`) in the POS search field.
+
+---
+
+## Phase 0 audit alignment (15 Oct 2026)
+
+Full findings in [CURRENT_STATE_AUDIT.md](CURRENT_STATE_AUDIT.md). Mapping the built app to the master-plan releases:
+
+- **Release A — Reliable Core ERP:** ~**Implemented**. Auth, tenancy/branches, catalogue+aliases+units, inventory ledger, POS/sales/returns/reversals, purchases (receiving + supplier ledger), customers/Khata, expenses, dashboard+reports+CSV, roles/permissions, audit, PWA/offline. Gaps within A: purchase **PO/approval/GRN** states, inventory **transfers**, **stock counts**, **POS shifts/cashbook**, **split tender**.
+- **Release B — AI Copilot:** ~**Implemented** except **cost metering/budgets/usage admin** (plan §17) → the first real gap.
+- **Release C — Advanced intelligence** (forecasting, reorder, anomaly, insights): **Not found**.
+- **Release D — Expansion:** **Not found** (as intended).
+
+### Proposed next phase (smallest safe, additive)
+**Phase 1 → AI cost metering & budgets (plan §17).** Why: it is explicitly "required", genuinely absent, fully additive (new `ai_usage_events`, `ai_budgets` tables — no destructive migration), and isolated from the money/stock paths.
+
+Scope:
+1. Record one `ai_usage_events` row per provider call (STT + LLM) in the existing AI path, incl. retries; never log secrets/raw audio.
+2. `ai_budgets` per business with alert thresholds + hard cap + provider kill switch.
+3. Enforcement that **degrades AI gracefully while core POS/stock keep working** when the cap is hit.
+4. Admin AI-usage screen (cost by provider/model/task, STT vs LLM, budget vs actual).
+5. Tests: usage recorded on each call; cap blocks AI but not POS; pricing `price_version` keeps estimates stable.
+
+Gate: `pnpm check` (typecheck + lint + test + build) + migration review. No production data reset.
+
+### Deployment watch-items (carried over, not Phase 1)
+- The live Worker is renamed **suvakta**; data resources keep `dukaanos-*` names (see memory/DEPLOYMENT.md).
+- Pending production migrations: **0003, 0004, 0005** (`pnpm db:migrate:production`).
+- `pnpm build` now succeeds (lucide-in-Server-Component OOM fixed, `1312f87`); deploy via push once Cloudflare build command is `pnpm build` + the vinext deploy command.
