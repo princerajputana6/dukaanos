@@ -1,5 +1,5 @@
 /**
- * DukaanOS D1 schema. Conventions (see ARCHITECTURE.md §5–6):
+ * Suvakta D1 schema. Conventions (see ARCHITECTURE.md §5–6):
  *  - ids: TEXT UUIDv7 · timestamps: INTEGER epoch ms · money: *_paise INTEGER
  *  - quantities: *_milli INTEGER (1 unit = 1000) · GST rates: *_bp (basis points)
  *  - every business-owned table has business_id, leading every index
@@ -849,4 +849,28 @@ export const voicePreferences = sqliteTable(
     lastUsedAt: integer("last_used_at").notNull(),
   },
   (t) => [primaryKey({ columns: [t.businessId, t.queryNorm] })],
+);
+
+/** "Request a quote" leads from the public website, worked by the platform team in /admin/leads. */
+export const quoteRequests = sqliteTable(
+  "quote_requests",
+  {
+    id: id(),
+    name: text("name").notNull(),
+    businessName: text("business_name").notNull(),
+    mobile: text("mobile").notNull(),
+    email: text("email"),
+    city: text("city"),
+    businessType: text("business_type"),
+    outlets: text("outlets"),
+    message: text("message"),
+    /** NEW → CONTACTED → CONVERTED | CLOSED */
+    status: text("status").notNull().default("NEW"),
+    adminNotes: text("admin_notes"),
+    source: text("source"),
+    ip: text("ip"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("quote_requests_status_created_idx").on(t.status, t.createdAt), index("quote_requests_mobile_idx").on(t.mobile)],
 );

@@ -1,11 +1,11 @@
-/* DukaanOS service worker — app shell caching + safe offline reads.
+/* Suvakta service worker — app shell caching + safe offline reads.
  * Writes are never cached here: offline mutations go through the in-app IndexedDB queue
  * with idempotency keys, so nothing is ever shown as "saved" before the server confirms it. */
-const VERSION = "v1";
-const SHELL = `dukaan-shell-${VERSION}`;
-const STATIC = `dukaan-static-${VERSION}`;
-const PAGES = `dukaan-pages-${VERSION}`;
-const DATA = `dukaan-data-${VERSION}`;
+const VERSION = "v2";
+const SHELL = `suvakta-shell-${VERSION}`;
+const STATIC = `suvakta-static-${VERSION}`;
+const PAGES = `suvakta-pages-${VERSION}`;
+const DATA = `suvakta-data-${VERSION}`;
 const SHELL_URLS = ["/offline.html", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/favicon.svg"];
 /** Read-only API responses worth keeping for offline use (catalogue, parties, dashboard). */
 const DATA_PATTERNS = [/^\/api\/me$/, /^\/api\/products(\?|$)/, /^\/api\/customers(\?|$)/, /^\/api\/suppliers(\?|$)/, /^\/api\/reports\/dashboard$/, /^\/api\/expenses\/categories$/, /^\/api\/products\/categories$/];
@@ -18,7 +18,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("dukaan-") && !k.endsWith(VERSION)).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => (k.startsWith("suvakta-") || k.startsWith("dukaan-")) && !k.endsWith(VERSION)).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });

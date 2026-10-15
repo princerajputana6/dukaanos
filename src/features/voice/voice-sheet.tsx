@@ -56,7 +56,7 @@ export function useVoiceController() {
         onInterim: (t) => useVoiceStore.getState().set({ interim: t }),
         onLevel: (l) => useVoiceStore.getState().set({ level: l }),
         onProcessing: () => useVoiceStore.getState().set({ phase: "processing", level: 0 }),
-        // Browser speech can't reach its servers here — keep listening via DukaanOS voice.
+        // Browser speech can't reach its servers here — keep listening via Suvakta voice.
         onFallback: () => useVoiceStore.getState().set({ phase: "listening", interim: "", error: null }),
       });
       session.current = sess;
@@ -168,7 +168,7 @@ export function VoiceSheet() {
 
   const busyPhase = s.phase === "processing" || s.phase === "executing";
   return (
-    <ResponsiveModal open={s.open} onOpenChange={close} title="Talk to DukaanOS" description={PHASE_LABEL[s.phase] ?? " "} className="md:max-w-md">
+    <ResponsiveModal open={s.open} onOpenChange={close} title="Talk to Suvakta" description={PHASE_LABEL[s.phase] ?? " "} className="md:max-w-md">
       <div className="flex flex-col gap-4 pb-2">
         {(s.phase === "idle" || s.phase === "listening" || s.phase === "processing" || s.phase === "error") && (
           <div className="flex flex-col items-center gap-3 pt-2">

@@ -37,7 +37,9 @@ const OWNER_MOBILE = "9876543210";
 const SUPER_ADMIN_MOBILE = "9999900000";
 
 async function main() {
-  const proxy = await getPlatformProxy<Env>({ configPath: "wrangler.jsonc" });
+  // SEED_PERSIST_TO seeds a separate local state dir (used for marketing screenshots).
+  const persistTo = process.env.SEED_PERSIST_TO;
+  const proxy = await getPlatformProxy<Env>({ configPath: "wrangler.jsonc", ...(persistTo ? { persist: { path: persistTo } } : {}) });
   const env = proxy.env;
   const db = getDb(env.DB);
   const logger = createLogger({ script: "seed" });
@@ -156,8 +158,8 @@ async function main() {
 
   // ── Platform: super admin, an agency, Sharma's 2nd branch and a few other tenants ──
   const adminId = newId(clock);
-  await db.insert(users).values({ id: adminId, name: "DukaanOS Admin", mobile: SUPER_ADMIN_MOBILE, email: "admin@dukaanos.example", passwordHash: await hashPassword("admin12345"), platformRole: "SUPER_ADMIN", createdAt: clock, updatedAt: clock });
-  const actx: AdminContext = { db, env, actorUserId: adminId, actorName: "DukaanOS Admin", ip: null, requestId: "seed", now: clock, logger: quiet };
+  await db.insert(users).values({ id: adminId, name: "Suvakta Admin", mobile: SUPER_ADMIN_MOBILE, email: "admin@dukaanos.example", passwordHash: await hashPassword("admin12345"), platformRole: "SUPER_ADMIN", createdAt: clock, updatedAt: clock });
+  const actx: AdminContext = { db, env, actorUserId: adminId, actorName: "Suvakta Admin", ip: null, requestId: "seed", now: clock, logger: quiet };
   const agency = await saveAgency(actx, { name: "Jaipur Retail Partners", contactName: "Neha Jain", phone: "9414000099", email: null, city: "Jaipur", status: "ACTIVE", notes: "Reseller for Rajasthan" });
   const sharmaTenant = (await db.select({ tenantId: businesses.tenantId }).from(businesses).where(eq(businesses.id, businessId)).get())!.tenantId!;
   await updateTenant(actx, sharmaTenant, { agencyId: agency.id });

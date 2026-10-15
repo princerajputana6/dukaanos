@@ -1,6 +1,6 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangleIcon, BuildingIcon, HandshakeIcon, IndianRupeeIcon, PlusCircleIcon, StoreIcon, UsersIcon, ZapIcon } from "lucide-react";
+import { AlertTriangleIcon, BuildingIcon, HandshakeIcon, InboxIcon, IndianRupeeIcon, PlusCircleIcon, StoreIcon, UsersIcon, ZapIcon } from "lucide-react";
 import Link from "next/link";
 import { RankedBars } from "@/components/charts/charts";
 import { Money } from "@/components/shared/money";
@@ -21,7 +21,7 @@ export function AdminOverviewView() {
     <div className="space-y-5">
       <PageHeader
         title="Platform overview"
-        description="Every tenant, shop, branch and licence on DukaanOS."
+        description="Every tenant, shop, branch and licence on Suvakta."
         actions={
           <Button asChild>
             <Link href="/admin/shops/new">
@@ -36,12 +36,13 @@ export function AdminOverviewView() {
         <CardsSkeleton count={8} />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
             <StatCard label="Tenants (accounts)" value={d.counts.tenants} icon={BuildingIcon} href="/admin/tenants" hint={d.counts.suspendedTenants ? `${d.counts.suspendedTenants} suspended` : "All in good standing"} />
             <StatCard label="Shops registered" value={d.counts.shops} icon={StoreIcon} href="/admin/shops" hint={`${d.counts.branches} additional branch${d.counts.branches === 1 ? "" : "es"}`} />
             <StatCard label="Agencies" value={d.counts.agencies} icon={HandshakeIcon} href="/admin/agencies" />
             <StatCard label="Owners / users" value={`${d.counts.owners} / ${d.counts.users}`} icon={UsersIcon} href="/admin/users" hint={`${d.counts.superAdmins} super admin${d.counts.superAdmins === 1 ? "" : "s"}`} />
             <StatCard label="Active shops (7 days)" value={d.counts.activeShops7d} icon={ZapIcon} tone="success" hint="Recorded at least one sale" />
+            <StatCard label="New leads" value={d.counts.newLeads} icon={InboxIcon} href="/admin/leads?status=NEW" hint="Website quote requests to call" />
             <StatCard label="Licences expiring ≤ 7 days" value={d.licenses.expiringSoon} icon={AlertTriangleIcon} tone={d.licenses.expiringSoon ? "warning" : "default"} href="/admin/tenants?status=EXPIRING" />
             <StatCard label="Platform sales today" value={<Money paise={d.gmv.todayPaise} compact />} icon={IndianRupeeIcon} />
             <StatCard label="Platform sales (30 days)" value={<Money paise={d.gmv.last30Paise} compact />} icon={IndianRupeeIcon} hint={`${d.gmv.bills30.toLocaleString("en-IN")} bills`} />

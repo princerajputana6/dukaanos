@@ -203,7 +203,7 @@ function AnswerCard({ response }: { response: AssistantResponse }) {
   return (
     <section className="rounded-2xl border bg-card p-4 shadow-soft">
       <p className="flex items-center gap-1.5 text-[12px] font-semibold text-primary">
-        <SparklesIcon className="size-3.5" aria-hidden="true" /> DukaanOS
+        <SparklesIcon className="size-3.5" aria-hidden="true" /> Suvakta
       </p>
       <p className="mt-1.5 text-[15.5px] leading-relaxed whitespace-pre-line">{response.message}</p>
       {response.answer?.actions?.length ? (

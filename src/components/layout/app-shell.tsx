@@ -42,10 +42,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
     const onUnauth = () => window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
     window.addEventListener("keydown", onKey);
-    window.addEventListener("dukaan:unauthenticated", onUnauth);
+    window.addEventListener("suvakta:unauthenticated", onUnauth);
     return () => {
       window.removeEventListener("keydown", onKey);
-      window.removeEventListener("dukaan:unauthenticated", onUnauth);
+      window.removeEventListener("suvakta:unauthenticated", onUnauth);
     };
   }, []);
 
@@ -58,7 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-dvh flex-col border-r bg-sidebar md:flex">
         <div className="flex h-16 items-center px-5">
-          <Link href="/dashboard" aria-label="DukaanOS home">
+          <Link href="/dashboard" aria-label="Suvakta home">
             <Logo />
           </Link>
         </div>
@@ -79,7 +79,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Top bar */}
         <header className="sticky top-0 z-30 border-b bg-background/85 pt-safe backdrop-blur-md">
           <div className="flex h-14 items-center gap-2 px-4 md:h-16 md:px-6">
-            <Link href="/dashboard" className="md:hidden" aria-label="DukaanOS home">
+            <Link href="/dashboard" className="md:hidden" aria-label="Suvakta home">
               <Logo compact />
             </Link>
             <MobileBusinessName />

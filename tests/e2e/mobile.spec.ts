@@ -10,7 +10,7 @@ test("mobile layout: bottom nav, floating mic, no horizontal scroll", async ({ p
   const nav = page.getByRole("navigation", { name: "Main" }).last();
   await expect(nav).toBeVisible();
   for (const tab of ["Home", "Sales", "Inventory", "Khata", "More"]) await expect(nav.getByText(tab, { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Talk to DukaanOS (voice assistant)" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Talk to Suvakta (voice assistant)" })).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 

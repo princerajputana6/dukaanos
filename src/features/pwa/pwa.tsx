@@ -8,7 +8,7 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-const DISMISS_KEY = "dukaan:install-dismissed";
+const DISMISS_KEY = "suvakta:install-dismissed";
 
 /** Registers the service worker (production builds) — the app shell then works offline. */
 export function ServiceWorkerRegistration() {
@@ -51,7 +51,7 @@ if (typeof window !== "undefined") {
   });
 }
 
-/** "Install DukaanOS" banner: native prompt on Android/desktop Chrome, instructions on iOS. */
+/** "Install Suvakta" banner: native prompt on Android/desktop Chrome, instructions on iOS. */
 export function InstallPrompt() {
   const canPrompt = React.useSyncExternalStore(subscribeInstall, () => deferred !== null, () => false);
   const [dismissed, setDismissed] = React.useState(() => {
@@ -79,7 +79,7 @@ export function InstallPrompt() {
     <div className="flex items-center gap-3 rounded-2xl border bg-card p-3 shadow-soft">
       <img src="/icons/icon-192.png" alt="" className="size-10 rounded-xl" />
       <div className="min-w-0 flex-1 text-[13.5px]">
-        <p className="font-semibold">Install DukaanOS</p>
+        <p className="font-semibold">Install Suvakta</p>
         <p className="text-muted-foreground">{canPrompt ? "Open it like an app, even offline." : "Tap Share, then “Add to Home Screen”."}</p>
       </div>
       {canPrompt && (

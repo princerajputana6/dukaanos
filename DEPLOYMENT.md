@@ -1,6 +1,6 @@
-# DukaanOS — Deployment
+# Suvakta — Deployment
 
-DukaanOS is a single Cloudflare Worker (vinext = Next.js App Router on Vite) with D1, R2,
+Suvakta is a single Cloudflare Worker (vinext = Next.js App Router on Vite) with D1, R2,
 Workers AI and Rate Limiting bindings, plus a daily cron trigger. There are **no secrets
 to manage for the core app** — every integration is a binding.
 

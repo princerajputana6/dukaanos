@@ -1,5 +1,5 @@
 /**
- * Creates (or promotes) a DukaanOS super admin.
+ * Creates (or promotes) a Suvakta super admin.
  *
  *   pnpm admin:create --mobile 98xxxxxxxx --name "Your Name" [--env production|staging|local]
  *

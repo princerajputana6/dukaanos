@@ -18,7 +18,7 @@ test("dashboard shows today's numbers and quick actions", async ({ page }) => {
   await go(page, "/dashboard");
   await expect(page.getByRole("heading", { name: /E2E General Store/ })).toBeVisible();
   await expect(page.getByText("Today's Sales")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Talk to DukaanOS/ }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /Talk to Suvakta/ }).first()).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Quick actions" })).toBeVisible();
 });
 
@@ -71,7 +71,7 @@ test("customer khata: udhaar then payment", async ({ page }) => {
 
 test("voice intent: understand → confirm → stock updated", async ({ page }) => {
   await go(page, "/dashboard");
-  await page.getByRole("button", { name: "Talk to DukaanOS (voice assistant)" }).click();
+  await page.getByRole("button", { name: "Talk to Suvakta (voice assistant)" }).click();
   const dialog = page.getByRole("dialog");
   // Headless browsers have no microphone: use the typed fallback (same pipeline).
   await dialog.getByRole("button", { name: "Type instead" }).click();

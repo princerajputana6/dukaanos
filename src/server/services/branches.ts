@@ -86,7 +86,7 @@ export async function createBranch(ctx: ServiceContext, input: CreateBranchInput
   if (!license) throw new AppError("LICENSE_INACTIVE", "No licence found for this account.");
   const used = await branchCount(ctx.db, tenant.id);
   if (used >= license.maxBranches) {
-    throw new AppError("LIMIT_REACHED", `Your ${LICENSE_PLANS[license.plan as LicensePlan]?.label ?? license.plan} plan allows ${license.maxBranches} branch${license.maxBranches === 1 ? "" : "es"}. Contact DukaanOS to upgrade.`);
+    throw new AppError("LIMIT_REACHED", `Your ${LICENSE_PLANS[license.plan as LicensePlan]?.label ?? license.plan} plan allows ${license.maxBranches} branch${license.maxBranches === 1 ? "" : "es"}. Contact Suvakta to upgrade.`);
   }
   const source = await ctx.db.select().from(businesses).where(eq(businesses.id, ctx.businessId)).get();
   const [srcSettings, srcGst] = await Promise.all([

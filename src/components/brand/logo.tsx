@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
-/** DukaanOS mark: a shop awning over a voice wave — "talk to your shop". */
-export function LogoMark({ className, title = "DukaanOS" }: { className?: string; title?: string }) {
+/** Suvakta (सुवक्ता, "the eloquent speaker") mark: a shop awning over a voice wave — "talk to your shop". */
+export function LogoMark({ className, title = "Suvakta" }: { className?: string; title?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={cn("size-8", className)} role="img" aria-label={title}>
       <rect width="32" height="32" rx="9" className="fill-primary" />
@@ -22,7 +22,7 @@ export function Logo({ className, compact = false }: { className?: string; compa
       <LogoMark />
       {!compact && (
         <span className="text-[17px] font-bold tracking-tight">
-          Dukaan<span className="text-primary">OS</span>
+          Su<span className="text-primary">vakta</span>
         </span>
       )}
     </span>

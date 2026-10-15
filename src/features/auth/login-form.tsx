@@ -62,7 +62,7 @@ export function LoginForm() {
         </Button>
       </form>
       <p className="text-center text-sm text-muted-foreground">
-        New to DukaanOS?{" "}
+        New to Suvakta?{" "}
         <Link href="/signup" className="font-semibold text-primary hover:underline">
           Create your shop
         </Link>

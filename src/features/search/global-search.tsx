@@ -63,7 +63,7 @@ export function GlobalSearch({ open, onOpenChange }: { open: boolean; onOpenChan
             {empty && <Command.Empty className="py-10 text-center text-sm text-muted-foreground">No results for “{dq}”.</Command.Empty>}
             {!dq && (
               <Command.Group heading="Quick actions" className={groupCls}>
-                <Item onSelect={() => (onOpenChange(false), openVoice({ listen: true }))} icon={MicIcon} label="Talk to DukaanOS" />
+                <Item onSelect={() => (onOpenChange(false), openVoice({ listen: true }))} icon={MicIcon} label="Talk to Suvakta" />
                 {actions.map((a) => (
                   <Item key={a.href} onSelect={() => go(a.href)} icon={a.icon ?? PlusIcon} label={a.label} />
                 ))}

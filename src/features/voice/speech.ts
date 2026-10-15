@@ -270,12 +270,12 @@ export class ServerSpeechProvider implements SpeechProvider {
   }
 }
 
-const BROWSER_STT_BROKEN_KEY = "dukaan:browser-stt-broken-until";
+const BROWSER_STT_BROKEN_KEY = "suvakta:browser-stt-broken-until";
 
 /**
  * The browser engine (Chrome's Web Speech API) streams audio to Google. In Brave, some
  * Edge/Android builds, behind VPNs or firewalls it fails with a "network" error. When that
- * happens we remember it on this device for a week and use DukaanOS server speech instead.
+ * happens we remember it on this device for a week and use Suvakta server speech instead.
  */
 function browserSttBroken(): boolean {
   try {

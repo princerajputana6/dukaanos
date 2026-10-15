@@ -53,7 +53,7 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
   if (!res.ok || !json?.success) {
     const e = json?.error;
     if (res.status === 401 && typeof window !== "undefined" && !path.startsWith("/auth/")) {
-      window.dispatchEvent(new CustomEvent("dukaan:unauthenticated"));
+      window.dispatchEvent(new CustomEvent("suvakta:unauthenticated"));
     }
     throw new ApiError(e?.code ?? "HTTP_ERROR", e?.message ?? `Request failed (${res.status})`, res.status, e?.details);
   }

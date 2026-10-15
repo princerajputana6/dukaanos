@@ -45,4 +45,4 @@ export function errorFields(err: unknown): Record<string, unknown> {
   return { error: String(err) };
 }
 
-export const logger = createLogger({ service: "dukaanos" });
+export const logger = createLogger({ service: "suvakta" });

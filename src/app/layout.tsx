@@ -6,9 +6,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { ServiceWorkerRegistration } from "@/features/pwa/pwa";
 
 export const metadata: Metadata = {
-  title: { default: "DukaanOS", template: "%s · DukaanOS" },
+  title: { default: "Suvakta", template: "%s · Suvakta" },
   description: "Run your business by simply talking to it. Sales, stock, khata and reports for Indian shops.",
-  applicationName: "DukaanOS",
+  applicationName: "Suvakta",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
   },
-  appleWebApp: { capable: true, title: "DukaanOS", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Suvakta", statusBarStyle: "default" },
   formatDetection: { telephone: false },
 };
 

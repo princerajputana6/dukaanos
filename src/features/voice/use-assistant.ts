@@ -5,8 +5,8 @@ import { useCallback } from "react";
 import { api } from "@/lib/api";
 import type { AssistantResponse } from "@/lib/api-types";
 
-export const SALE_DRAFT_KEY = "dukaan:sale-draft";
-export const PURCHASE_DRAFT_KEY = "dukaan:purchase-draft";
+export const SALE_DRAFT_KEY = "suvakta:sale-draft";
+export const PURCHASE_DRAFT_KEY = "suvakta:purchase-draft";
 
 /** Thin client for the assistant API; all decisions happen on the server. */
 export function useAssistantApi() {

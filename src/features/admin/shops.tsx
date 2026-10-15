@@ -322,7 +322,7 @@ export function CreateShopWizard() {
               onChange={setOwnerMode}
               options={[
                 { value: "new", label: "New login" },
-                { value: "existing", label: "Already uses DukaanOS" },
+                { value: "existing", label: "Already uses Suvakta" },
               ]}
             />
             <div className="grid gap-3 sm:grid-cols-2">

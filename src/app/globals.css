@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 
 /*
- * DukaanOS design tokens.
+ * Suvakta design tokens.
  * One brand colour (deep teal-green: trust + money) on calm neutral surfaces.
  * Follows the system light/dark preference.
  */
@@ -201,3 +201,36 @@
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
 }
+
+/* Marketing site: animated voice bars. */
+@keyframes voice-bar {
+  0%, 100% { height: 30%; }
+  50% { height: 100%; }
+}
+.voice-bar {
+  height: 40%;
+  animation: voice-bar 1s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-bar { animation: none; height: 60%; }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* Readable long-form text for policy pages. */
+.prose-legal { font-size: 16px; line-height: 1.75; }
+.prose-legal h2 { margin: 2.5rem 0 0.75rem; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; scroll-margin-top: 6rem; }
+.prose-legal h3 { margin: 1.5rem 0 0.5rem; font-size: 17px; font-weight: 600; }
+.prose-legal p, .prose-legal ul, .prose-legal ol { margin: 0.75rem 0; color: var(--foreground); }
+.prose-legal ul { list-style: disc; padding-left: 1.4rem; }
+.prose-legal ol { list-style: decimal; padding-left: 1.4rem; }
+.prose-legal li { margin: 0.35rem 0; }
+.prose-legal a { color: var(--primary); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+.prose-legal table { width: 100%; margin: 1rem 0; border-collapse: collapse; font-size: 14.5px; }
+.prose-legal th, .prose-legal td { border: 1px solid var(--border); padding: 0.6rem 0.75rem; text-align: left; vertical-align: top; }
+.prose-legal th { background: var(--muted); font-weight: 600; }
+.prose-legal .table-wrap { overflow-x: auto; }

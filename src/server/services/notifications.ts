@@ -58,7 +58,7 @@ export async function runDailyJobs(db: Db, env: Env, now: number, logger: Logger
       env,
       businessId: b.id,
       userId: "system",
-      userName: "DukaanOS",
+      userName: "Suvakta",
       roleKey: "system",
       permissions: new Set(["reports.view"]),
       source: "SYSTEM",

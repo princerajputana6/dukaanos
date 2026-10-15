@@ -1,8 +1,8 @@
-# DukaanOS
+# Suvakta
 
 **Run your business by simply talking to it.**
 
-DukaanOS is a mobile-first PWA for Indian small businesses — kirana, paan, cafés, salons,
+Suvakta is a mobile-first PWA for Indian small businesses — kirana, paan, cafés, salons,
 stationery, electronics, distributors. Shopkeepers speak in Hindi, English or Hinglish, see
 exactly what was understood, confirm, and it's recorded: sales, stock, khata (udhaar),
 purchases, expenses and GST-ready reports.

@@ -26,7 +26,7 @@ test("signup → onboarding → dashboard, then logout and login", async ({ page
   await expect(page.getByText("You have products — great!")).toBeVisible();
   await page.getByRole("button", { name: /Continue/ }).click();
   await expect(page.getByRole("heading", { name: "Meet your AI assistant" })).toBeVisible();
-  await page.getByRole("button", { name: /Start using DukaanOS/ }).click();
+  await page.getByRole("button", { name: /Start using Suvakta/ }).click();
 
   await expect(page).toHaveURL(/\/dashboard/);
   await expect(page.getByRole("heading", { name: /Asha Kirana/ })).toBeVisible();

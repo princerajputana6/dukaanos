@@ -1,5 +1,5 @@
 "use client";
-import { BuildingIcon, HandshakeIcon, HistoryIcon, LayoutDashboardIcon, LogOutIcon, MenuIcon, PlusCircleIcon, StoreIcon, UsersIcon, XIcon } from "lucide-react";
+import { BuildingIcon, HandshakeIcon, HistoryIcon, InboxIcon, LayoutDashboardIcon, LogOutIcon, MenuIcon, PlusCircleIcon, StoreIcon, UsersIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
@@ -14,6 +14,7 @@ const NAV = [
   { href: "/admin", label: "Overview", icon: LayoutDashboardIcon, exact: true },
   { href: "/admin/tenants", label: "Tenants & licences", icon: BuildingIcon },
   { href: "/admin/shops", label: "Shops & branches", icon: StoreIcon },
+  { href: "/admin/leads", label: "Leads", icon: InboxIcon },
   { href: "/admin/agencies", label: "Agencies", icon: HandshakeIcon },
   { href: "/admin/users", label: "Owners & users", icon: UsersIcon },
   { href: "/admin/audit", label: "Admin audit log", icon: HistoryIcon },
@@ -78,7 +79,7 @@ export function AdminShell({ children, user, hasShop }: { children: React.ReactN
       <aside className="sticky top-0 hidden h-dvh flex-col bg-[oklch(0.22_0.03_200)] lg:flex">
         <div className="flex h-16 items-center gap-2.5 px-5 text-white">
           <LogoMark />
-          <span className="font-bold">DukaanOS</span>
+          <span className="font-bold">Suvakta</span>
           <span className="rounded-md bg-white/15 px-1.5 py-0.5 text-[11px] font-semibold">ADMIN</span>
         </div>
         {nav}
@@ -88,14 +89,14 @@ export function AdminShell({ children, user, hasShop }: { children: React.ReactN
           <MenuIcon className="size-5" />
         </button>
         <LogoMark className="size-7" />
-        <span className="font-bold">DukaanOS Admin</span>
+        <span className="font-bold">Suvakta Admin</span>
       </header>
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
           <button type="button" aria-label="Close menu" className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
           <div className="relative flex h-full w-72 flex-col bg-[oklch(0.22_0.03_200)]">
             <div className="flex h-14 items-center justify-between px-4 text-white">
-              <span className="font-bold">DukaanOS Admin</span>
+              <span className="font-bold">Suvakta Admin</span>
               <button type="button" aria-label="Close menu" onClick={() => setOpen(false)} className="rounded-lg p-2 hover:bg-white/10">
                 <XIcon className="size-5" />
               </button>

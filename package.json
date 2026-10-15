@@ -1,5 +1,5 @@
 {
-  "name": "dukaanos",
+  "name": "suvakta",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@11.9.0",
@@ -75,6 +75,7 @@
     "db:migrate:staging": "wrangler d1 migrations apply dukaanos-staging --remote --env staging",
     "db:migrate:production": "wrangler d1 migrations apply dukaanos-prod --remote --env production",
     "db:seed:local": "tsx scripts/seed.ts",
+    "marketing:screens": "tsx scripts/capture-screens.ts",
     "db:reset:local": "rm -rf .wrangler/state/v3/d1 && pnpm db:migrate:local && pnpm db:seed:local",
     "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
     "icons": "node scripts/generate-icons.mjs",

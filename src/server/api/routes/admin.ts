@@ -10,7 +10,9 @@ import {
   updateShopSchema,
   updateTenantSchema,
 } from "@/schemas/platform";
+import { updateLeadSchema } from "@/schemas/marketing";
 import * as admin from "@/server/services/admin";
+import * as leads from "@/server/services/leads";
 import { body, ok, query } from "../respond";
 import { requireSuperAdmin, requireUser } from "../middleware";
 import type { AppEnv } from "../types";
@@ -33,6 +35,8 @@ function actx(c: Context<AppEnv>): admin.AdminContext {
 export const adminRoutes = new Hono<AppEnv>()
   .use("*", requireUser, requireSuperAdmin)
   .get("/overview", async (c) => ok(c, await admin.overview(actx(c))))
+  .get("/leads", async (c) => ok(c, await leads.listLeads(actx(c), query(c, adminListSchema))))
+  .patch("/leads/:id", async (c) => ok(c, await leads.updateLead(actx(c), c.req.param("id"), await body(c, updateLeadSchema))))
   .get("/tenants", async (c) => ok(c, await admin.listTenants(actx(c), query(c, adminListSchema))))
   .get("/tenants/:id", async (c) => ok(c, await admin.getTenant(actx(c), c.req.param("id"))))
   .get("/tenants/:id/shops", async (c) => ok(c, await admin.tenantShopOptions(actx(c), c.req.param("id"))))

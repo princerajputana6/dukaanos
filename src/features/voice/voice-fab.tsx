@@ -16,7 +16,7 @@ export function VoiceFab() {
         <button
           type="button"
           onClick={() => openSheet({ listen: true })}
-          aria-label="Talk to DukaanOS (voice assistant)"
+          aria-label="Talk to Suvakta (voice assistant)"
           className="fixed right-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-40 flex size-15 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lift transition-transform hover:scale-105 active:scale-95 md:right-8 md:bottom-8 md:size-16"
         >
           <MicIcon className="size-7" aria-hidden="true" />

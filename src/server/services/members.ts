@@ -80,7 +80,7 @@ export async function addMember(ctx: ServiceContext, input: z.output<typeof addM
           .get()
       : undefined;
     if (lic && !alreadyInTenant && used >= lic.maxUsers) {
-      throw new AppError("LIMIT_REACHED", `Your plan allows ${lic.maxUsers} users. Remove someone or contact DukaanOS to upgrade.`);
+      throw new AppError("LIMIT_REACHED", `Your plan allows ${lic.maxUsers} users. Remove someone or contact Suvakta to upgrade.`);
     }
   }
   const memberId = newId(ctx.now);
@@ -162,7 +162,7 @@ export async function resetMemberPassword(ctx: ServiceContext, memberId: string,
     .from(businessMembers)
     .where(and(eq(businessMembers.userId, m.user.id), ne(businessMembers.businessId, ctx.businessId)))
     .get();
-  if (other) throw new AppError("FORBIDDEN", "This person also uses DukaanOS elsewhere. Ask them to reset their own password.");
+  if (other) throw new AppError("FORBIDDEN", "This person also uses Suvakta elsewhere. Ask them to reset their own password.");
   await commit(
     ctx,
     [

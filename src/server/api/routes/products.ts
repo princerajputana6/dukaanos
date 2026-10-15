@@ -16,7 +16,7 @@ export const productRoutes = bizRouter()
   .get("/export", async (c) => csv(`products-${todayIst()}.csv`, await productsSvc.exportProductsCsv(c.get("ctx"))))
   .get("/import/template", () =>
     csv(
-      "dukaanos-products-template.csv",
+      "suvakta-products-template.csv",
       `${productsSvc.PRODUCT_CSV_HEADER.join(",")}\r\nCoke 500ml,,8901234567890,Cold Drinks,Coca-Cola,bottle,33,40,40,40,2202,24,12,Coke|कोक\r\n`,
     ),
   )

@@ -56,7 +56,7 @@ export function BranchesSettings() {
             <p className="text-muted-foreground">
               <ValidUntil date={d.license.validUntil} />
             </p>
-            {atLimit && <p className="text-[13px] text-warning-foreground">You&apos;ve used all branches on your plan. Contact DukaanOS support to upgrade.</p>}
+            {atLimit && <p className="text-[13px] text-warning-foreground">You&apos;ve used all branches on your plan. Contact Suvakta support to upgrade.</p>}
           </CardContent>
         </Card>
       )}

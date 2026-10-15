@@ -266,7 +266,7 @@ export function ProductForm({ existing, initialName }: { existing?: ProductDetai
         <CardHeader>
           <div>
             <CardTitle>Voice names & packs</CardTitle>
-            <p className="text-[13px] text-muted-foreground">Help DukaanOS understand what you call this product.</p>
+            <p className="text-[13px] text-muted-foreground">Help Suvakta understand what you call this product.</p>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">

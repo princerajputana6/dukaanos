@@ -1,8 +1,8 @@
-# DukaanOS — Architecture
+# Suvakta — Architecture
 
 > "Run your business by simply talking to it."
 
-DukaanOS is a mobile-first PWA for Indian small businesses (kirana, paan, salon, café,
+Suvakta is a mobile-first PWA for Indian small businesses (kirana, paan, salon, café,
 distributors…). The core loop is **VOICE → UNDERSTAND → CONFIRM → EXECUTE → RECORD**.
 
 This document is the source of truth for how the system is put together. If code and this

@@ -1,4 +1,4 @@
-# DukaanOS — Implementation Plan
+# Suvakta — Implementation Plan
 
 Status legend: ☐ todo · ◐ partly done / not verified end-to-end · ☑ done
 
@@ -56,7 +56,7 @@ A feature counts as done only when it meets the Definition of Done in the produc
 
 ## ☑ Phase 11 — Dashboard
 - Today's sales/profit/outstanding/low stock, sales trend, top products, expense trend,
-  data-backed insights, quick actions, "Talk to DukaanOS" CTA
+  data-backed insights, quick actions, "Talk to Suvakta" CTA
 
 ## ☑ Phase 12 — Reports
 - Report service: daily/weekly/monthly sales, profit, expenses, inventory valuation,

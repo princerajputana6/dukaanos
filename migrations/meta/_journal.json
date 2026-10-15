@@ -36,6 +36,13 @@
       "when": 1791663325665,
       "tag": "0004_voice_preferences",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1792012648309,
+      "tag": "0005_quote_requests",
+      "breakpoints": true
     }
   ]
 }

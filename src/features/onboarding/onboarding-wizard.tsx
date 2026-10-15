@@ -196,7 +196,7 @@ export function OnboardingWizard() {
             </div>
             <div>
               <h1 className="text-[26px] leading-tight font-semibold tracking-tight">Meet your AI assistant</h1>
-              <p className="mx-auto mt-2 max-w-sm text-[15.5px] text-muted-foreground">You can simply speak to DukaanOS — in Hindi, English or Hinglish. It shows you exactly what it understood, and saves only after you confirm.</p>
+              <p className="mx-auto mt-2 max-w-sm text-[15.5px] text-muted-foreground">You can simply speak to Suvakta — in Hindi, English or Hinglish. It shows you exactly what it understood, and saves only after you confirm.</p>
             </div>
             <ul className="mx-auto max-w-sm space-y-2 text-left">
               {["Aaj 10 Coke biki", "Ramesh ka ₹500 payment aaya", "Coke kitni bachi hai?", "Kaunsa product low hai?"].map((x) => (
@@ -207,7 +207,7 @@ export function OnboardingWizard() {
             </ul>
             <p className="text-[13px] text-muted-foreground">Tap the green mic button on any screen to start.</p>
             <Button size="xl" className="w-full" onClick={finish} loading={busy}>
-              Start using DukaanOS <ArrowRightIcon />
+              Start using Suvakta <ArrowRightIcon />
             </Button>
             <button type="button" className="text-[13px] text-muted-foreground underline-offset-2 hover:underline" onClick={() => setStep(3)}>
               Back

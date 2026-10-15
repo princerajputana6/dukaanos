@@ -1,6 +1,6 @@
 {
-  "name": "DukaanOS — Run your business by talking to it",
-  "short_name": "DukaanOS",
+  "name": "Suvakta — Run your business by talking to it",
+  "short_name": "Suvakta",
   "description": "Sales, stock, khata and reports for Indian shops — by voice.",
   "id": "/",
   "start_url": "/dashboard?source=pwa",
@@ -20,7 +20,7 @@
   ],
   "shortcuts": [
     { "name": "New sale", "url": "/sales/new", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Talk to DukaanOS", "url": "/ai", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Talk to Suvakta", "url": "/ai", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
     { "name": "Khata", "url": "/customers", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }

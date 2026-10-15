@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 /**
  * Simulates a browser whose Web Speech API can't reach Google's servers (Brave, some
  * Edge/Android builds, VPNs/firewalls): it fails with error "network". The app must keep
- * listening via DukaanOS server speech (MediaRecorder → /api/ai/voice) and remember it.
+ * listening via Suvakta server speech (MediaRecorder → /api/ai/voice) and remember it.
  */
 class FailingRecognition {
   lang = "";

@@ -15,7 +15,7 @@ export function LicenseBanner() {
         <AlertTriangleIcon className="size-4 shrink-0" aria-hidden="true" />
         <span>
           {a.writable
-            ? `Your ${a.licenseStatus === "TRIAL" ? "free trial" : "licence"} ends on ${formatDate(a.validUntil!)}. Contact DukaanOS to renew.`
+            ? `Your ${a.licenseStatus === "TRIAL" ? "free trial" : "licence"} ends on ${formatDate(a.validUntil!)}. Contact Suvakta to renew.`
             : `${a.reason} Your data is safe and can still be viewed and exported.`}
         </span>
       </div>

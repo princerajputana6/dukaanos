@@ -183,7 +183,7 @@ export function UsersView() {
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
   return (
     <div>
-      <PageHeader title="Owners & users" description="Everyone who can log in to DukaanOS." />
+      <PageHeader title="Owners & users" description="Everyone who can log in to Suvakta." />
       <div className="mb-3 relative">
         <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
         <Input className="pl-10" placeholder="Search name, mobile or email" aria-label="Search users" value={q} onChange={(e) => setQ(e.target.value)} />

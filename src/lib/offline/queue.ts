@@ -27,6 +27,7 @@ export const MAX_RETRIES = 5;
 
 let store: UseStore | null = null;
 function db(): UseStore {
+  // Legacy database name kept on purpose: renaming it would orphan unsynced offline sales.
   store ??= createStore("dukaanos-offline", "actions");
   return store;
 }

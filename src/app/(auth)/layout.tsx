@@ -14,7 +14,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
           <span className="rounded-xl bg-white/15 p-1">
             <Logo compact />
           </span>
-          DukaanOS
+          Suvakta
         </div>
         <div className="mt-auto max-w-md space-y-6">
           <p className="text-4xl leading-tight font-semibold tracking-tight">Run your business by simply talking to it.</p>

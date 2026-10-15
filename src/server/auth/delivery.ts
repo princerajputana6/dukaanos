@@ -40,7 +40,7 @@ class EmailDelivery implements MessageDelivery {
       await this.binding.send({
         from: this.from,
         to: to.email,
-        subject: "Reset your DukaanOS password",
+        subject: "Reset your Suvakta password",
         text: `Namaste ${to.name},\n\nUse this link to set a new password (valid for 30 minutes):\n${link}\n\nIf you didn't ask for this, you can ignore this email.`,
         html: `<p>Namaste ${escapeHtml(to.name)},</p><p>Use the link below to set a new password. It is valid for 30 minutes.</p><p><a href="${escapeHtml(link)}">Reset password</a></p><p>If you didn't ask for this, you can ignore this email.</p>`,
       });

@@ -143,10 +143,10 @@ export function shopAccess(
   const licenseStatus = m.licenseStatus ? effectiveLicenseStatus({ status: m.licenseStatus, validUntil: m.validUntil }, today) : "ACTIVE";
   const tenantStatus = m.tenantStatus ?? "ACTIVE";
   let reason: string | null = null;
-  if (m.businessStatus !== "ACTIVE") reason = "This shop has been suspended by DukaanOS. You can view your data but not record new entries.";
-  else if (tenantStatus !== "ACTIVE") reason = "Your DukaanOS account is suspended. You can view your data but not record new entries.";
+  if (m.businessStatus !== "ACTIVE") reason = "This shop has been suspended by Suvakta. You can view your data but not record new entries.";
+  else if (tenantStatus !== "ACTIVE") reason = "Your Suvakta account is suspended. You can view your data but not record new entries.";
   else if (!licenseAllowsWrites(licenseStatus))
-    reason = licenseStatus === "EXPIRED" ? "Your DukaanOS licence has expired. Renew it to keep recording sales." : `Your DukaanOS licence is ${licenseStatus.toLowerCase()}. You can view your data but not record new entries.`;
+    reason = licenseStatus === "EXPIRED" ? "Your Suvakta licence has expired. Renew it to keep recording sales." : `Your Suvakta licence is ${licenseStatus.toLowerCase()}. You can view your data but not record new entries.`;
   return {
     tenantId: m.tenantId,
     businessStatus: m.businessStatus,

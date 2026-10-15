@@ -148,7 +148,7 @@ export function GstSettings() {
   const [v, setV] = React.useState({ gstin: me.gst.gstin ?? "", legalName: me.gst.legalName ?? "", stateCode: me.gst.stateCode ?? me.business.stateCode ?? "", registrationStatus: me.gst.registrationStatus });
   const [err, setErr] = React.useState<string | null>(null);
   return (
-    <Shell title="GST" description="Used on bills and the GST summary report. DukaanOS does not file returns.">
+    <Shell title="GST" description="Used on bills and the GST summary report. Suvakta does not file returns.">
       <Card>
         <CardContent className="grid gap-4 pt-5">
           <Segmented label="Registration" value={v.registrationStatus as (typeof GST_REGISTRATION)[number]} onChange={(x) => setV({ ...v, registrationStatus: x })} options={GST_REGISTRATION.map((r) => ({ value: r, label: r === "UNREGISTERED" ? "Not registered" : r === "REGISTERED" ? "Regular" : "Composition" }))} />
@@ -263,7 +263,7 @@ export function VoiceSettings() {
   const support = supportKey ? { browser: supportKey.startsWith("true"), server: supportKey.endsWith("true") } : null;
   const manage = can("settings.manage");
   return (
-    <Shell title="Voice & AI" description="How DukaanOS listens and understands.">
+    <Shell title="Voice & AI" description="How Suvakta listens and understands.">
       <Card className="mb-4">
         <CardHeader>
           <CardTitle>Speech recognition</CardTitle>
@@ -276,7 +276,7 @@ export function VoiceSettings() {
             options={[
               { value: "auto", label: "Automatic" },
               { value: "browser", label: "Phone/browser" },
-              { value: "server", label: "DukaanOS server" },
+              { value: "server", label: "Suvakta server" },
             ]}
           />
           <p className="text-[13px] text-muted-foreground">

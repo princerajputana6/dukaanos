@@ -74,7 +74,7 @@ export function DashboardView() {
               onClick={() => openVoice({ listen: true })}
               className="mt-2 inline-flex h-14 items-center gap-3 rounded-2xl bg-white px-5 text-[16px] font-semibold text-brand shadow-sm transition-transform active:scale-[0.98]"
             >
-              <MicIcon className="size-5" aria-hidden="true" /> Talk to DukaanOS
+              <MicIcon className="size-5" aria-hidden="true" /> Talk to Suvakta
             </button>
           </div>
           <ul className="flex flex-wrap gap-2 sm:max-w-sm sm:justify-end">

@@ -13,6 +13,7 @@ import { businessRoutes } from "./routes/business";
 import { auditRoutes, expenseRoutes, notificationRoutes, reportRoutes, searchRoutes, teamRoutes } from "./routes/misc";
 import { customerRoutes, supplierRoutes } from "./routes/parties";
 import { fileRoutes, inventoryRoutes, productRoutes } from "./routes/products";
+import { publicRoutes } from "./routes/public";
 import { purchaseRoutes, saleRoutes } from "./routes/sales";
 import type { AppEnv } from "./types";
 
@@ -30,6 +31,7 @@ export function createApp() {
 
   app.get("/health", (c) => ok(c, { status: "ok", env: c.env.ENVIRONMENT }));
   app.route("/auth", authRoutes);
+  app.route("/public", publicRoutes);
 
   app.get("/me", requireUser, async (c) => {
     const s = c.get("session")!;

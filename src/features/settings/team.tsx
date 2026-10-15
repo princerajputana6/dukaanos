@@ -164,7 +164,7 @@ function AddMemberSheet({ open, onOpenChange, roles }: { open: boolean; onOpenCh
             ))}
           </NativeSelect>
         </Field>
-        <Field id="s-pass" label="Temporary password" hint="At least 8 characters. Not needed if they already use DukaanOS.">
+        <Field id="s-pass" label="Temporary password" hint="At least 8 characters. Not needed if they already use Suvakta.">
           <PasswordInput id="s-pass" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
         <Button type="submit" className="w-full" loading={busy} disabled={!name.trim() || !mobile.trim()}>

@@ -1,7 +1,7 @@
 /**
  * Super admin (platform) services: every tenant, shop/branch, agency, owner and licence.
  * Every change is recorded in platform_audit_logs; changes inside a shop are also written to
- * that shop's own audit log (source SYSTEM) so the owner can see what DukaanOS staff did.
+ * that shop's own audit log (source SYSTEM) so the owner can see what Suvakta staff did.
  */
 import { and, desc, eq, gte, inArray, like, ne, or, sql, type SQL } from "drizzle-orm";
 import { ref } from "@/server/db/sql";
@@ -45,6 +45,7 @@ import { createCustomer } from "./customers";
 import type { Stmt } from "./engine";
 import { addSampleProducts, importProductsCsv } from "./products";
 import { createSupplier } from "./suppliers";
+import { newLeadCount } from "./leads";
 import { newTenantStmts } from "./tenancy";
 
 export interface AdminContext {
@@ -73,7 +74,7 @@ function shopAudit(ctx: AdminContext, businessId: string, action: string, summar
     action,
     entityType: "business",
     entityId: businessId,
-    summary: `${summary} (by DukaanOS support)`,
+    summary: `${summary} (by Suvakta support)`,
     afterData: after ?? null,
     source: "SYSTEM",
     requestId: ctx.requestId,
@@ -96,7 +97,7 @@ export async function overview(ctx: AdminContext) {
   const in7 = addDays(today, 7);
   const since30 = addDays(today, -29);
   const since30Ms = ctx.now - 30 * 86_400_000;
-  const [ag, tn, shops, usersN, lic, signups, gmv, activeShops] = await Promise.all([
+  const [ag, tn, shops, usersN, lic, signups, gmv, activeShops, newLeads] = await Promise.all([
     ctx.db.select({ n: sql<number>`count(*)` }).from(agencies).get(),
     ctx.db.select({ total: sql<number>`count(*)`, suspended: sql<number>`sum(case when ${tenants.status} = 'SUSPENDED' then 1 else 0 end)` }).from(tenants).get(),
     ctx.db
@@ -124,6 +125,7 @@ export async function overview(ctx: AdminContext) {
       .where(and(eq(sales.status, "COMPLETED"), gte(sales.txnDate, since30)))
       .get(),
     ctx.db.select({ n: sql<number>`count(distinct ${sales.businessId})` }).from(sales).where(gte(sales.txnDate, addDays(today, -6))).get(),
+    newLeadCount(ctx.db),
   ]);
   const byStatus: Record<LicenseStatus, number> = { TRIAL: 0, ACTIVE: 0, SUSPENDED: 0, EXPIRED: 0, CANCELLED: 0 };
   const byPlan: Record<string, number> = {};
@@ -152,6 +154,7 @@ export async function overview(ctx: AdminContext) {
       owners: n(usersN?.owners),
       superAdmins: n(usersN?.admins),
       activeShops7d: n(activeShops?.n),
+      newLeads,
     },
     licenses: { byStatus, byPlan, expiringSoon },
     gmv: { todayPaise: n(gmv?.today), last30Paise: n(gmv?.last30), bills30: n(gmv?.bills30) },
