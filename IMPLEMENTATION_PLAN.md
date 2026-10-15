@@ -171,3 +171,9 @@ Recommend **2a** first (smaller, strengthens an existing advertised claim); 2b n
 - Backend (migration `0007`) + UI. Stock-count sheet (`/inventory/count`): enter counted qty, live difference, review, confirm → sets stock via `COUNT` movements; history + detail. Transfer (`/inventory/transfer`): pick sibling branch, add products, atomic `TRANSFER_OUT`/`TRANSFER_IN`.
 - Verified in-browser: count applied end-to-end (stock 34→30), transfer screen lists sibling branch. `pnpm check` → 17 files/150 tests, build ok.
 - Next: **Phase 2b — Purchase PO → approval → GRN**, or POS shifts/cashbook.
+
+### Phase 2b — Purchase orders (PO → approve → GRN) — ☑ shipped (15 Oct 2026)
+- Backend (migration `0008`): `purchase_orders` + `purchase_order_lines`, `purchases.purchase_order_id`. States DRAFT→SUBMITTED→APPROVED→PARTIALLY_RECEIVED→RECEIVED|CANCELLED. Stock/payable change only on receive, which posts a linked credit purchase via `createPurchase` (one place for cost/tax/ledger). Approval gated by `settings.manage`; receives are idempotent and can be partial.
+- UI: `/purchases/orders` (list + status filter), `/purchases/orders/new` (supplier + lines), `/purchases/orders/:id` (lifecycle actions + receive dialog). "Orders" link added to the Purchases header.
+- Verified in-browser: Draft → Submit → Approve → Receive 48 → Received, with "stock and supplier balance updated". `pnpm check` → 18 files/153 tests, build ok.
+- Next options: POS shifts/cashbook; multi-warehouse; accounting export.

@@ -14,7 +14,7 @@ import { auditRoutes, expenseRoutes, notificationRoutes, reportRoutes, searchRou
 import { customerRoutes, supplierRoutes } from "./routes/parties";
 import { fileRoutes, inventoryRoutes, productRoutes } from "./routes/products";
 import { publicRoutes } from "./routes/public";
-import { purchaseRoutes, saleRoutes } from "./routes/sales";
+import { purchaseOrderRoutes, purchaseRoutes, saleRoutes } from "./routes/sales";
 import type { AppEnv } from "./types";
 
 export function createApp() {
@@ -55,6 +55,7 @@ export function createApp() {
   app.route("/files", fileRoutes);
   app.route("/sales", saleRoutes);
   app.route("/purchases", purchaseRoutes);
+  app.route("/purchase-orders", purchaseOrderRoutes);
   app.route("/customers", customerRoutes);
   app.route("/suppliers", supplierRoutes);
   app.route("/expenses", expenseRoutes);

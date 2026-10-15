@@ -1,6 +1,6 @@
 "use client";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { DownloadIcon, PlusIcon, ShoppingBagIcon, Undo2Icon } from "lucide-react";
+import { ClipboardListIcon, DownloadIcon, PlusIcon, ShoppingBagIcon, Undo2Icon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
@@ -41,6 +41,11 @@ export function PurchasesList() {
         description={totals ? <>{totals.count} purchases · <Money paise={totals.totalPaise} /></> : " "}
         actions={
           <>
+            <Button variant="outline" asChild>
+              <Link href="/purchases/orders">
+                <ClipboardListIcon /> <span className="hidden sm:inline">Orders</span>
+              </Link>
+            </Button>
             <Button variant="outline" asChild>
               <a href={`/api/purchases/export${qs(range)}`} download>
                 <DownloadIcon /> <span className="hidden sm:inline">Export</span>

@@ -1,7 +1,9 @@
 import { createSaleSchema, createPurchaseSchema, listPurchasesSchema, listSalesSchema } from "@/schemas/sales";
+import { createPurchaseOrderSchema, receivePurchaseOrderSchema } from "@/schemas/purchase-order";
 import { reverseSchema } from "@/schemas/parties";
 import { dateRangeSchema } from "@/schemas/common";
 import * as purchasesSvc from "@/server/services/purchases";
+import * as poSvc from "@/server/services/purchase-order";
 import * as salesSvc from "@/server/services/sales";
 import { body, csv, idempotencyKey, ok, query } from "../respond";
 import { bizRouter, requirePerm } from "../middleware";
@@ -31,3 +33,14 @@ export const purchaseRoutes = bizRouter()
   .post("/:id/reverse", requirePerm("sales.delete"), async (c) =>
     ok(c, await purchasesSvc.reversePurchase(c.get("ctx"), c.req.param("id"), (await body(c, reverseSchema)).reason, idempotencyKey(c))),
   );
+
+export const purchaseOrderRoutes = bizRouter()
+  .use("*", requirePerm("purchase.create"))
+  .get("/", async (c) => ok(c, await poSvc.listPurchaseOrders(c.get("ctx"), c.req.query("status") || undefined)))
+  .post("/", async (c) => ok(c, await poSvc.createPurchaseOrder(c.get("ctx"), await body(c, createPurchaseOrderSchema)), 201))
+  .get("/:id", async (c) => ok(c, await poSvc.getPurchaseOrder(c.get("ctx"), c.req.param("id"))))
+  .post("/:id/submit", async (c) => ok(c, await poSvc.submitPurchaseOrder(c.get("ctx"), c.req.param("id"))))
+  .post("/:id/approve", async (c) => ok(c, await poSvc.approvePurchaseOrder(c.get("ctx"), c.req.param("id"))))
+  .post("/:id/cancel", async (c) => ok(c, await poSvc.cancelPurchaseOrder(c.get("ctx"), c.req.param("id"))))
+  .post("/:id/receive", async (c) => ok(c, await poSvc.receivePurchaseOrder(c.get("ctx"), c.req.param("id"), await body(c, receivePurchaseOrderSchema), idempotencyKey(c)), 201));
+

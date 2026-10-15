@@ -14,7 +14,7 @@ Suvakta is **not** an early prototype. It is a working, multi-tenant, voice-firs
 
 The real gaps versus this master plan are in **advanced/ops breadth**, not core correctness:
 - **AI cost metering & budgets** (plan §17): **Implemented in Phase 1** — `ai_usage_events` + `ai_budgets`, per-call recording, per-shop cap/kill switch that degrades AI while POS keeps working, and an `/admin/ai-usage` screen.
-- **Purchase Order → approval → GRN workflow** (§11): purchases post stock immediately on create; no PO states. → **Partial**
+- **Purchase Order → approval → GRN workflow** (§11): **Implemented in Phase 2b** — `purchase_orders`/`purchase_order_lines`, Draft→Submitted→Approved→Partially/Received→Cancelled, receive posts stock+payable via a linked purchase.
 - **POS shifts/cashbook** (§13): → **Not found**. (Inventory transfers + stock counts shipped in Phase 2a.)
 - **Forecasting / reorder drafts / anomaly / insights** (Release C, §18): → **Not found**
 - **Split tender** (§10): single payment method per sale. → **Not found**
@@ -68,7 +68,6 @@ No fabricated metrics, dead buttons, or pre-commit success messages were found i
 - **Super-admin console** (`/admin`) — tenants, shops/branches, agencies, users, licences, leads; `platform_audit_logs`.
 
 ### Partial
-- **Purchases** — functional receiving + supplier ledger, but **no** `Draft→Submitted→Approved→Received→Invoiced` states or GRN. (§11)
 - **Confidence→review surfacing** — proposals flag `needsReview` under 0.9 but there is no separate reviewer role/queue.
 
 ### Not found (vs plan)
@@ -96,7 +95,6 @@ No fabricated metrics, dead buttons, or pre-commit success messages were found i
 
 ## 5. Gaps that matter most (ranked)
 
-1. **Purchase PO/GRN workflow** — wholesalers/distributors (a target segment) expect it.
 4. **POS shifts/cashbook** — needed before "cash mismatch" alerts are meaningful.
 5. **Forecasting/recommendations** — Release C; gate on data-sufficiency, do not fake.
 

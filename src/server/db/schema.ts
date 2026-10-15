@@ -589,6 +589,7 @@ export const purchases = sqliteTable(
     purchaseNumber: text("purchase_number").notNull(),
     supplierId: text("supplier_id"),
     billNumber: text("bill_number"),
+    purchaseOrderId: text("purchase_order_id"),
     txnDate: text("txn_date").notNull(),
     status: text("status").notNull().default("COMPLETED"),
     paymentMethod: text("payment_method").notNull(),
@@ -950,4 +951,48 @@ export const stockCountLines = sqliteTable(
     createdAt: createdAt(),
   },
   (t) => [index("stock_count_lines_count_idx").on(t.stockCountId)],
+);
+
+/**
+ * Purchase orders (optional workflow): Draft → Submitted → Approved → Partially Received →
+ * Received | Cancelled. A PO plans a purchase; stock and payable change only when goods are
+ * received (which creates a linked purchase). `received_milli` is a display snapshot; the
+ * authoritative received quantity is the sum of linked purchase items.
+ */
+export const purchaseOrders = sqliteTable(
+  "purchase_orders",
+  {
+    id: id(),
+    businessId: businessId(),
+    poNumber: text("po_number").notNull(),
+    supplierId: text("supplier_id"),
+    status: text("status").notNull().default("DRAFT"),
+    note: text("note"),
+    expectedDate: text("expected_date"),
+    subtotalPaise: integer("subtotal_paise").notNull().default(0),
+    itemCount: integer("item_count").notNull().default(0),
+    createdBy: text("created_by"),
+    approvedBy: text("approved_by"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("purchase_orders_business_status_idx").on(t.businessId, t.status, t.createdAt)],
+);
+
+export const purchaseOrderLines = sqliteTable(
+  "purchase_order_lines",
+  {
+    id: id(),
+    purchaseOrderId: text("purchase_order_id").notNull(),
+    businessId: businessId(),
+    productId: text("product_id").notNull(),
+    productName: text("product_name").notNull(),
+    unit: text("unit").notNull().default("pcs"),
+    orderedMilli: integer("ordered_milli").notNull(),
+    receivedMilli: integer("received_milli").notNull().default(0),
+    unitCostPaise: integer("unit_cost_paise").notNull(),
+    gstRateBp: integer("gst_rate_bp").notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [index("purchase_order_lines_po_idx").on(t.purchaseOrderId)],
 );
