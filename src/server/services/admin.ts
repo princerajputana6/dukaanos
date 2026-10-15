@@ -22,6 +22,7 @@ import {
   licenseEvents,
   licenses,
   platformAuditLogs,
+  quoteRequests,
   roles,
   sales,
   tenants,
@@ -45,7 +46,6 @@ import { createCustomer } from "./customers";
 import type { Stmt } from "./engine";
 import { addSampleProducts, importProductsCsv } from "./products";
 import { createSupplier } from "./suppliers";
-import { newLeadCount } from "./leads";
 import { newTenantStmts } from "./tenancy";
 
 export interface AdminContext {
@@ -125,7 +125,7 @@ export async function overview(ctx: AdminContext) {
       .where(and(eq(sales.status, "COMPLETED"), gte(sales.txnDate, since30)))
       .get(),
     ctx.db.select({ n: sql<number>`count(distinct ${sales.businessId})` }).from(sales).where(gte(sales.txnDate, addDays(today, -6))).get(),
-    newLeadCount(ctx.db),
+    ctx.db.select({ n: sql<number>`count(*)` }).from(quoteRequests).where(eq(quoteRequests.status, "NEW")).get(),
   ]);
   const byStatus: Record<LicenseStatus, number> = { TRIAL: 0, ACTIVE: 0, SUSPENDED: 0, EXPIRED: 0, CANCELLED: 0 };
   const byPlan: Record<string, number> = {};
@@ -154,7 +154,7 @@ export async function overview(ctx: AdminContext) {
       owners: n(usersN?.owners),
       superAdmins: n(usersN?.admins),
       activeShops7d: n(activeShops?.n),
-      newLeads,
+      newLeads: n(newLeads?.n),
     },
     licenses: { byStatus, byPlan, expiringSoon },
     gmv: { todayPaise: n(gmv?.today), last30Paise: n(gmv?.last30), bills30: n(gmv?.bills30) },
