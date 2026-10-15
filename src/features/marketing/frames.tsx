@@ -13,7 +13,7 @@ export function PhoneFrame({ children, className }: { children: React.ReactNode;
 }
 
 /** A minimal browser window wrapping a live mockup. */
-export function BrowserFrame({ children, className, url = "app.suvakta.com" }: { children: React.ReactNode; className?: string; url?: string }) {
+export function BrowserFrame({ children, className, url = "suvakta.com" }: { children: React.ReactNode; className?: string; url?: string }) {
   return (
     <div className={cn("overflow-hidden rounded-2xl border bg-card shadow-[0_30px_80px_-24px_oklch(0.2_0.05_200/0.4)]", className)}>
       <div className="flex h-9 items-center gap-1.5 border-b bg-muted/60 px-3" aria-hidden="true">

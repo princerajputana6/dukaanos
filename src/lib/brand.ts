@@ -10,12 +10,12 @@ export const BRAND = {
   description: "Suvakta is the voice-first business app for Indian shops: speak in Hindi, English or Hinglish to record sales, stock, khata, purchases and expenses — with GST-ready reports.",
   /** Legal entity that operates the service, shown in the legal pages. Update when incorporated. */
   legalName: "Suvakta",
-  /**
-   * Public contact email. Left empty until the domain (suvakta.com / suvakta.ai) is live, so we
-   * never publish an address that can't receive mail; pages fall back to the contact form.
-   */
-  supportEmail: "" as string,
-  grievanceOfficer: { name: "Grievance Officer, Suvakta", email: "" as string },
+  /** Primary domain (customers see this). */
+  domain: "suvakta.com",
+  url: "https://suvakta.com",
+  /** Public contact email. Must be a mailbox that can receive mail. */
+  supportEmail: "support@suvakta.com" as string,
+  grievanceOfficer: { name: "Grievance Officer, Suvakta", email: "support@suvakta.com" as string },
   jurisdiction: "India",
   lastUpdated: "15 October 2026",
 } as const;

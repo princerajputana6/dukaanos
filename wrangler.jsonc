@@ -73,7 +73,7 @@
       "name": "dukaanos",
       "vars": {
         "ENVIRONMENT": "production",
-        "APP_URL": "https://dukaanos-production.connect-88a.workers.dev",
+        "APP_URL": "https://suvakta.com",
         "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
         "STT_MODEL": "@cf/openai/whisper-large-v3-turbo",
         "FLAG_VOICE_ENABLED": "true",

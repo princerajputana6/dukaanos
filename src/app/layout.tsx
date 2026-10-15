@@ -4,8 +4,10 @@ import "./globals.css";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { ServiceWorkerRegistration } from "@/features/pwa/pwa";
+import { BRAND } from "@/lib/brand";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(BRAND.url),
   title: { default: "Suvakta", template: "%s · Suvakta" },
   description: "Run your business by simply talking to it. Sales, stock, khata and reports for Indian shops.",
   applicationName: "Suvakta",
