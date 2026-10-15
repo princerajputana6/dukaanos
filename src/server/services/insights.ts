@@ -3,9 +3,9 @@
  * card is a *measured* observation with its evidence — nothing is invented. Read-only: insights
  * never change stock, prices, credit or orders; the UI only links to where the user can act.
  */
-import { and, eq, gt, gte, isNotNull, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, isNotNull, lt, sql } from "drizzle-orm";
 import { addDays, todayIst } from "@/lib/dates";
-import { customers, posShifts, products, reversals, saleItems, sales } from "@/server/db/schema";
+import { customers, posShifts, products, purchaseItems, reversals, saleItems, sales } from "@/server/db/schema";
 import type { ServiceContext } from "./context";
 
 export interface Insight {
@@ -162,6 +162,66 @@ export async function businessInsights(ctx: ServiceContext): Promise<Insight[]> 
       href: `/customers?filter=due`,
       actionLabel: "View khata",
     });
+  }
+
+  // 8. Supplier price jump: a product's latest purchase cost rose ≥15% vs the one before.
+  const prodName = new Map(prods.map((p) => [p.id, p.name]));
+  const piRows = await ctx.db
+    .select({ productId: purchaseItems.productId, cost: purchaseItems.unitCostPaise, createdAt: purchaseItems.createdAt })
+    .from(purchaseItems)
+    .where(and(eq(purchaseItems.businessId, ctx.businessId), gte(purchaseItems.createdAt, ctx.now - 120 * 86_400_000)))
+    .orderBy(purchaseItems.productId, desc(purchaseItems.createdAt))
+    .limit(4000);
+  const lastTwo = new Map<string, number[]>();
+  for (const r of piRows) {
+    const arr = lastTwo.get(r.productId) ?? [];
+    if (arr.length < 2) arr.push(r.cost);
+    lastTwo.set(r.productId, arr);
+  }
+  const jumps = [...lastTwo.entries()]
+    .filter(([, c]) => c.length === 2 && c[1]! > 0 && c[0]! >= c[1]! * 1.15)
+    .map(([id, c]) => ({ id, latest: c[0]!, prev: c[1]!, pct: Math.round(((c[0]! - c[1]!) / c[1]!) * 100) }))
+    .sort((a, b) => b.pct - a.pct)
+    .slice(0, 5);
+  for (const j of jumps) {
+    out.push({
+      id: `price_jump:${j.id}`,
+      kind: "supplier_price_jump",
+      severity: "info",
+      title: `${prodName.get(j.id) ?? "A product"} costs ${j.pct}% more`,
+      detail: "Your latest purchase cost rose sharply. Check if your selling price still leaves the margin you want.",
+      evidence: `Purchase cost ${rupees(j.prev)} → ${rupees(j.latest)} (+${j.pct}%)`,
+      href: `/inventory/${j.id}`,
+      actionLabel: "Review pricing",
+    });
+  }
+
+  // 9. Inactive regulars: customers who bought 3+ times but haven't returned in 30+ days.
+  const freq = await ctx.db
+    .select({ customerId: sales.customerId, n: sql<number>`count(*)` })
+    .from(sales)
+    .where(and(eq(sales.businessId, ctx.businessId), eq(sales.status, "COMPLETED"), isNotNull(sales.customerId)))
+    .groupBy(sales.customerId);
+  const regulars = new Set(freq.filter((f) => Number(f.n) >= 3 && f.customerId).map((f) => f.customerId!));
+  if (regulars.size > 0) {
+    const inactive = await ctx.db
+      .select({ id: customers.id, name: customers.name, lastTxnAt: customers.lastTxnAt })
+      .from(customers)
+      .where(and(eq(customers.businessId, ctx.businessId), eq(customers.isActive, true), isNotNull(customers.lastTxnAt), lt(customers.lastTxnAt, ctx.now - 30 * 86_400_000)))
+      .limit(500);
+    const lapsed = inactive.filter((c) => regulars.has(c.id));
+    if (lapsed.length > 0) {
+      out.push({
+        id: "inactive_regulars",
+        kind: "inactive_regulars",
+        severity: "info",
+        title: `${lapsed.length} regular customer${lapsed.length === 1 ? "" : "s"} haven't returned`,
+        detail: "Customers who used to buy often have gone quiet. A friendly WhatsApp or a small offer may bring them back.",
+        evidence: `${lapsed.length} customers with 3+ past visits, silent for 30+ days`,
+        href: `/customers`,
+        actionLabel: "View customers",
+      });
+    }
   }
 
   const rank = { alert: 0, warning: 1, info: 2 } as const;

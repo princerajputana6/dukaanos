@@ -194,3 +194,7 @@ Recommend **2a** first (smaller, strengthens an existing advertised claim); 2b n
 - services/insights.ts + `GET /reports/insights` (reports.view): grounded, rule-based cards — below-cost products that are selling, best-sellers out of stock, dead/slow stock (value tied up), heavy discounts (7d), return/reversal spikes (7d), cash mismatches at shift close (7d), and ageing receivables (>30d). Every card carries its measured evidence; read-only (never changes data).
 - UI: /insights page with severity-coloured cards (title, why it matters, evidence, action link), client-side dismiss (localStorage) + "show dismissed"; nav entry under Reports.
 - Verified in-browser: real "6 products not selling — ₹5,332 of stock with no sales in 30 days" card, dismiss → "All clear". pnpm check → 21 files/162 tests, build ok.
+
+### Phase 3c — Customer & supplier insights (Release C) — shipped (15 Oct 2026)
+- Extended services/insights.ts with two more grounded rules: **supplier price jump** (a product's latest purchase cost ≥15% above the previous one → check selling price/margin) and **inactive regulars** (customers with 3+ past visits, silent for 30+ days → win-back). Same read-only insight cards; no new UI or migration.
+- Tests: +2 (price-jump between two purchases, lapsed regular). pnpm check → 21 files/164 tests, build ok.

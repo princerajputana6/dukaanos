@@ -53,4 +53,38 @@ describe("business insights (grounded, rule-based)", () => {
     const denied = await call("GET", "/reports/insights", { cookie });
     expect(denied.status).toBe(403);
   });
+
+  it("flags a supplier price jump between the two most recent purchases", async () => {
+    const { cookie } = await signupOwner();
+    const sup = await call("POST", "/suppliers", { cookie, body: { name: "ABC Distributors" } });
+    const supplierId = sup.body.data.id;
+    const oil = await createProduct(cookie, { name: "Cooking Oil 1L", sellingPricePaise: 15000, purchasePricePaise: 10000, openingStockMilli: 0 });
+    // First purchase at ₹100/unit, then a later one at ₹130/unit (+30%).
+    await call("POST", "/purchases", { cookie, idempotencyKey: key(), body: { supplierId, items: [{ productId: oil, quantityMilli: 5000, unitCostPaise: 10000 }], payment: { status: "PAID", method: "CASH" } } });
+    await call("POST", "/purchases", { cookie, idempotencyKey: key(), body: { supplierId, items: [{ productId: oil, quantityMilli: 5000, unitCostPaise: 13000 }], payment: { status: "PAID", method: "CASH" } } });
+
+    const r = await call("GET", "/reports/insights", { cookie });
+    const card = r.body.data.find((i: { id: string }) => i.id === `price_jump:${oil}`);
+    expect(card).toBeTruthy();
+    expect(card.kind).toBe("supplier_price_jump");
+    expect(card.evidence).toMatch(/\+30%/);
+  });
+
+  it("flags a regular customer who has gone quiet for 30+ days", async () => {
+    const { cookie, businessId } = await signupOwner();
+    const prod = await createProduct(cookie, { name: "Biscuit", sellingPricePaise: 1000, purchasePricePaise: 700, openingStockMilli: 100000 });
+    const cust = await call("POST", "/customers", { cookie, body: { name: "Regular Ramesh" } });
+    const custId = cust.body.data.id;
+    // Three past visits make them a regular.
+    for (let i = 0; i < 3; i++) {
+      await call("POST", "/sales", { cookie, idempotencyKey: key(), body: { items: [{ productId: prod, quantityMilli: 1000 }], payment: { method: "CASH" }, customerId: custId } });
+    }
+    await env.DB.prepare("UPDATE customers SET last_txn_at = ? WHERE id = ? AND business_id = ?").bind(Date.now() - 40 * 86_400_000, custId, businessId).run();
+
+    const r = await call("GET", "/reports/insights", { cookie });
+    const card = r.body.data.find((i: { id: string }) => i.id === "inactive_regulars");
+    expect(card).toBeTruthy();
+    expect(card.evidence).toMatch(/3\+ past visits/);
+  });
 });
+
