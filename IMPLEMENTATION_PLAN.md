@@ -155,3 +155,14 @@ Gate: `pnpm check` (typecheck + lint + test + build) + migration review. No prod
 - The live Worker is renamed **suvakta**; data resources keep `dukaanos-*` names (see memory/DEPLOYMENT.md).
 - Pending production migrations: **0003, 0004, 0005** (`pnpm db:migrate:production`).
 - `pnpm build` now succeeds (lucide-in-Server-Component OOM fixed, `1312f87`); deploy via push once Cloudflare build command is `pnpm build` + the vinext deploy command.
+
+### Phase 1 — AI cost metering & budgets — ☑ shipped (15 Oct 2026)
+- `ai_usage_events`, `ai_budgets` (migration `0006`); versioned price map `src/server/ai/pricing.ts`.
+- Recording in the live AI path (LLM intent + Whisper STT); `checkAiBudget` gates the paid model and degrades to rules; **core POS/stock unaffected** (proven by `tests/integration/ai-usage.test.ts`).
+- Super-admin `/admin/ai-usage`: spend by task/model/shop, set per-shop cap + kill switch (audited).
+- Gate: `pnpm check` → 16 files / 145 tests pass, build succeeds.
+
+### Proposed Phase 2 (pick one)
+- **2a — Inventory transfers + stock counts:** new movement types + `stock_counts`/`stock_count_lines`; keeps the multi-branch stock-integrity claim honest. Additive.
+- **2b — Purchase PO → approval → GRN:** `purchase_orders`/`goods_receipts`; needed for the wholesaler/distributor segment. Additive.
+Recommend **2a** first (smaller, strengthens an existing advertised claim); 2b next.

@@ -21,6 +21,7 @@ import {
   gstSettings,
   licenseEvents,
   licenses,
+  aiBudgets,
   platformAuditLogs,
   quoteRequests,
   roles,
@@ -41,6 +42,7 @@ import type {
 } from "@/schemas/platform";
 import { newBusinessStmts } from "./auth";
 import { branchCount, copyCatalogue, tenantUserCount } from "./branches";
+import { platformAiUsage } from "./ai-usage";
 import type { ServiceContext } from "./context";
 import { createCustomer } from "./customers";
 import type { Stmt } from "./engine";
@@ -663,3 +665,33 @@ export async function tenantShopOptions(ctx: AdminContext, tenantId: string) {
 function pickKeys(obj: Record<string, unknown>, keys: string[]) {
   return Object.fromEntries(keys.map((k) => [k, obj[k]]));
 }
+
+// ─── AI usage & budgets (plan §17) ───────────────────────────────────────────
+
+export async function aiUsage(ctx: AdminContext, days = 30) {
+  const [overview, budgets] = await Promise.all([
+    platformAiUsage(ctx, days),
+    ctx.db.select().from(aiBudgets),
+  ]);
+  const budgetBy = new Map(budgets.map((b) => [b.businessId, b]));
+  return {
+    ...overview,
+    topBusinesses: overview.topBusinesses.map((b) => {
+      const bud = budgetBy.get(b.businessId);
+      return { ...b, monthlyCapMicros: bud?.monthlyCapMicros ?? null, killSwitch: bud?.killSwitch ?? false };
+    }),
+  };
+}
+
+export async function setAiBudget(ctx: AdminContext, businessId: string, input: { monthlyCapMicros: number | null; killSwitch: boolean; alertBp: number }) {
+  const biz = await ctx.db.select({ id: businesses.id, name: businesses.name }).from(businesses).where(eq(businesses.id, businessId)).get();
+  if (!biz) throw notFound("Shop");
+  const before = await ctx.db.select().from(aiBudgets).where(eq(aiBudgets.businessId, businessId)).get();
+  const values = { businessId, monthlyCapMicros: input.monthlyCapMicros, killSwitch: input.killSwitch, alertBp: input.alertBp, updatedBy: ctx.actorUserId, updatedAt: ctx.now };
+  await run(ctx, [
+    ctx.db.insert(aiBudgets).values(values).onConflictDoUpdate({ target: aiBudgets.businessId, set: values }),
+    audit(ctx, "AI_BUDGET_SET", "business", businessId, `AI budget for ${biz.name}: cap ${input.monthlyCapMicros ?? "none"} micros, kill ${input.killSwitch}`, { before, after: values }),
+  ]);
+  return { businessId };
+}
+

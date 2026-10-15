@@ -874,3 +874,48 @@ export const quoteRequests = sqliteTable(
   },
   (t) => [index("quote_requests_status_created_idx").on(t.status, t.createdAt), index("quote_requests_mobile_idx").on(t.mobile)],
 );
+
+/**
+ * Per-call AI provider usage, for cost metering and budgets (AI_COST_MODEL.md).
+ * One row per provider call (STT or LLM), including retries. Never stores audio or transcripts.
+ */
+export const aiUsageEvents = sqliteTable(
+  "ai_usage_events",
+  {
+    id: id(),
+    businessId: businessId(),
+    userId: text("user_id"),
+    requestId: text("request_id"),
+    interactionId: text("interaction_id"),
+    provider: text("provider").notNull(),
+    model: text("model").notNull(),
+    /** stt | intent | answer | insight */
+    task: text("task").notNull(),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    cachedTokens: integer("cached_tokens").notNull().default(0),
+    audioMs: integer("audio_ms").notNull().default(0),
+    /** Estimated cost in micro-rupees (₹ × 1,000,000) under `priceVersion`. */
+    estCostMicros: integer("est_cost_micros").notNull().default(0),
+    priceVersion: text("price_version").notNull(),
+    latencyMs: integer("latency_ms"),
+    status: text("status").notNull(),
+    retryCount: integer("retry_count").notNull().default(0),
+    routingReason: text("routing_reason"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("ai_usage_business_created_idx").on(t.businessId, t.createdAt), index("ai_usage_task_idx").on(t.task), index("ai_usage_created_idx").on(t.createdAt)],
+);
+
+/** Per-business AI allowance and controls. Absent row = platform defaults. */
+export const aiBudgets = sqliteTable("ai_budgets", {
+  businessId: text("business_id").primaryKey(),
+  /** Hard spend cap per calendar month in micro-rupees; null = unlimited. */
+  monthlyCapMicros: integer("monthly_cap_micros"),
+  /** Alert when month-to-date crosses this fraction of the cap (basis points, e.g. 8000 = 80%). */
+  alertBp: integer("alert_bp").notNull().default(8000),
+  /** Master off switch: when true, the LLM/STT are skipped and AI degrades gracefully. */
+  killSwitch: integer("kill_switch", { mode: "boolean" }).notNull().default(false),
+  updatedBy: text("updated_by"),
+  updatedAt: updatedAt(),
+});

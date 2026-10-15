@@ -28,6 +28,12 @@ export function addDays(date: IsoDate, days: number): IsoDate {
   return new Date(Date.parse(`${date}T00:00:00.000Z`) + days * DAY_MS).toISOString().slice(0, 10);
 }
 
+/** UTC ms of IST midnight on the first day of the IST month containing `now`. */
+export function istMonthStartMs(now: number = Date.now()): number {
+  const first = `${toIstDate(now).slice(0, 7)}-01`;
+  return istDayStartMs(first);
+}
+
 /** Inclusive number of days between two dates. */
 export function daysBetween(from: IsoDate, to: IsoDate): number {
   return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS) + 1;

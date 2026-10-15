@@ -7,9 +7,16 @@ import type { Logger } from "@/server/lib/logger";
 import { PARSED_INTENT_JSON_SCHEMA, parsedIntentSchema, type ParsedIntent } from "./contract";
 import { buildMessages, type PromptContext } from "./prompts/build";
 
+export interface LlmUsage {
+  inputTokens: number;
+  outputTokens: number;
+  latencyMs: number;
+  status: "ok" | "error" | "timeout";
+}
+
 export interface IntentParser {
   readonly name: string;
-  parse(input: string, context: PromptContext): Promise<ParsedIntent | null>;
+  parse(input: string, context: PromptContext, onUsage?: (u: LlmUsage) => void): Promise<ParsedIntent | null>;
 }
 
 export class WorkersAIParser implements IntentParser {
@@ -21,7 +28,7 @@ export class WorkersAIParser implements IntentParser {
     private timeoutMs = 8000,
   ) {}
 
-  async parse(input: string, context: PromptContext): Promise<ParsedIntent | null> {
+  async parse(input: string, context: PromptContext, onUsage?: (u: LlmUsage) => void): Promise<ParsedIntent | null> {
     const started = Date.now();
     try {
       const run = this.ai.run(this.model as Parameters<Ai["run"]>[0], {
@@ -31,6 +38,7 @@ export class WorkersAIParser implements IntentParser {
         temperature: 0,
       } as never) as Promise<unknown>;
       const res = await withTimeout(run, this.timeoutMs);
+      onUsage?.({ ...usageOf(res), latencyMs: Date.now() - started, status: "ok" });
       const raw = extractJson(res);
       const parsed = parsedIntentSchema.safeParse(raw);
       if (!parsed.success) {
@@ -40,10 +48,18 @@ export class WorkersAIParser implements IntentParser {
       this.logger.info("llm parse", { model: this.model, intent: parsed.data.intent, confidence: parsed.data.confidence, ms: Date.now() - started });
       return parsed.data;
     } catch (err) {
+      const timedOut = err instanceof AppError && err.code === "AI_UNAVAILABLE";
+      onUsage?.({ inputTokens: 0, outputTokens: 0, latencyMs: Date.now() - started, status: timedOut ? "timeout" : "error" });
       this.logger.warn("llm parse failed", { model: this.model, error: String(err), ms: Date.now() - started });
       return null;
     }
   }
+}
+
+/** Workers AI returns usage counts on most text models; absent → zeros. */
+function usageOf(res: unknown): { inputTokens: number; outputTokens: number } {
+  const u = (res as { usage?: { prompt_tokens?: number; completion_tokens?: number } })?.usage;
+  return { inputTokens: Math.max(0, Math.round(u?.prompt_tokens ?? 0)), outputTokens: Math.max(0, Math.round(u?.completion_tokens ?? 0)) };
 }
 
 function extractJson(res: unknown): unknown {

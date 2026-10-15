@@ -9,6 +9,7 @@ import {
   updateLicenseSchema,
   updateShopSchema,
   updateTenantSchema,
+  aiBudgetSchema,
 } from "@/schemas/platform";
 import { updateLeadSchema } from "@/schemas/marketing";
 import * as admin from "@/server/services/admin";
@@ -35,6 +36,11 @@ function actx(c: Context<AppEnv>): admin.AdminContext {
 export const adminRoutes = new Hono<AppEnv>()
   .use("*", requireUser, requireSuperAdmin)
   .get("/overview", async (c) => ok(c, await admin.overview(actx(c))))
+  .get("/ai-usage", async (c) => ok(c, await admin.aiUsage(actx(c), Math.min(90, Math.max(1, Number(c.req.query("days") ?? 30))))))
+  .put("/ai-budget/:businessId", async (c) => {
+    const b = await body(c, aiBudgetSchema);
+    return ok(c, await admin.setAiBudget(actx(c), c.req.param("businessId"), { monthlyCapMicros: b.monthlyCapRupees == null ? null : Math.round(b.monthlyCapRupees * 1_000_000), killSwitch: b.killSwitch, alertBp: b.alertPct * 100 }));
+  })
   .get("/leads", async (c) => ok(c, await leads.listLeads(actx(c), query(c, adminListSchema))))
   .patch("/leads/:id", async (c) => ok(c, await leads.updateLead(actx(c), c.req.param("id"), await body(c, updateLeadSchema))))
   .get("/tenants", async (c) => ok(c, await admin.listTenants(actx(c), query(c, adminListSchema))))

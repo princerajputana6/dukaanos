@@ -123,3 +123,10 @@ export const adminUserUpdateSchema = z.object({
 });
 
 export const adminResetPasswordSchema = z.object({ password: passwordSchema });
+
+/** Super-admin: set a shop's AI budget. Rupees/percent on the wire; service stores micros/bp. */
+export const aiBudgetSchema = z.object({
+  monthlyCapRupees: z.number().min(0).max(10_000_000).nullable(),
+  killSwitch: z.boolean().default(false),
+  alertPct: z.number().int().min(1).max(100).default(80),
+});

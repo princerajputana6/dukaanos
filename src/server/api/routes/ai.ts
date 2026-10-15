@@ -3,6 +3,7 @@ import { newId } from "@/lib/ids";
 import { clarifySchema, interpretSchema } from "@/schemas/ai";
 import * as assistant from "@/server/ai/assistant";
 import { getSttProvider } from "@/server/ai/stt";
+import { recordAiUsage } from "@/server/services/ai-usage";
 import { businessSettings, voiceCommands } from "@/server/db/schema";
 import { AppError } from "@/server/lib/errors";
 import { resolveFlags } from "@/server/lib/flags";
@@ -45,7 +46,9 @@ export const aiRoutes = bizRouter()
     if (audio.size > MAX_AUDIO_BYTES) throw new AppError("PAYLOAD_TOO_LARGE", "Recording is too long. Keep it under a minute.");
     const stt = getSttProvider(c.env, ctx.logger);
     if (!stt) throw new AppError("AI_UNAVAILABLE", "Server voice recognition is not configured. Use your browser's microphone or type.");
+    const sttStarted = ctx.now;
     const transcript = await stt.transcribe(await audio.arrayBuffer());
+    void recordAiUsage(ctx, { provider: transcript.provider, model: c.env.STT_MODEL ?? "@cf/openai/whisper-large-v3-turbo", task: "stt", audioMs: transcript.durationMs ?? 0, latencyMs: Date.now() - sttStarted, status: "ok" });
     if (!transcript.text) throw new AppError("VALIDATION_ERROR", "I couldn't hear anything. Please try again closer to the phone.");
     const voiceCommandId = newId(ctx.now);
     await ctx.db.insert(voiceCommands).values({

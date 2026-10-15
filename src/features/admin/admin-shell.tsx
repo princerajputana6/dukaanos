@@ -1,5 +1,5 @@
 "use client";
-import { BuildingIcon, HandshakeIcon, HistoryIcon, InboxIcon, LayoutDashboardIcon, LogOutIcon, MenuIcon, PlusCircleIcon, StoreIcon, UsersIcon, XIcon } from "lucide-react";
+import { BotIcon, BuildingIcon, HandshakeIcon, HistoryIcon, InboxIcon, LayoutDashboardIcon, LogOutIcon, MenuIcon, PlusCircleIcon, StoreIcon, UsersIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
@@ -17,6 +17,7 @@ const NAV = [
   { href: "/admin/leads", label: "Leads", icon: InboxIcon },
   { href: "/admin/agencies", label: "Agencies", icon: HandshakeIcon },
   { href: "/admin/users", label: "Owners & users", icon: UsersIcon },
+  { href: "/admin/ai-usage", label: "AI usage", icon: BotIcon },
   { href: "/admin/audit", label: "Admin audit log", icon: HistoryIcon },
 ];
 

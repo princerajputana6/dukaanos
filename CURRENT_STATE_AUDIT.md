@@ -13,7 +13,7 @@ Status legend: **Implemented** · **Partial** · **Mocked** · **Broken** · **N
 Suvakta is **not** an early prototype. It is a working, multi-tenant, voice-first retail ERP with a deterministic transaction engine, 44 database tables, 21 domain services, an atomic `db.batch()` commit path with idempotency and DB-level stock guards, role-based permissions, an audit log, a rules-first + LLM-fallback AI pipeline that proposes and never directly mutates, a PWA with an offline queue, and CSV import/export. The core loop the landing page advertises — *speak → understand → confirm → commit → audit* — exists and is covered by integration tests.
 
 The real gaps versus this master plan are in **advanced/ops breadth**, not core correctness:
-- **AI cost metering & budgets** (plan §17, marked "required"): only interaction logging exists; no token/audio/cost ledger, no budgets, no admin usage screen. → **Partial**
+- **AI cost metering & budgets** (plan §17): **Implemented in Phase 1** — `ai_usage_events` + `ai_budgets`, per-call recording, per-shop cap/kill switch that degrades AI while POS keeps working, and an `/admin/ai-usage` screen.
 - **Purchase Order → approval → GRN workflow** (§11): purchases post stock immediately on create; no PO states. → **Partial**
 - **Inventory transfers between branches, stock counts/reconciliation, POS shifts/cashbook** (§9, §13): → **Not found**
 - **Forecasting / reorder drafts / anomaly / insights** (Release C, §18): → **Not found**
@@ -68,7 +68,6 @@ No fabricated metrics, dead buttons, or pre-commit success messages were found i
 - **Super-admin console** (`/admin`) — tenants, shops/branches, agencies, users, licences, leads; `platform_audit_logs`.
 
 ### Partial
-- **AI cost metering** — `ai_interactions` records `parser`, `model`, `latency_ms`, `intent`, `status` but **no tokens, audio duration, cost, or budgets**; no admin AI-usage screen; no per-business cap / kill switch. (plan §17) → see AI_COST_MODEL.md.
 - **Purchases** — functional receiving + supplier ledger, but **no** `Draft→Submitted→Approved→Received→Invoiced` states or GRN. (§11)
 - **Confidence→review surfacing** — proposals flag `needsReview` under 0.9 but there is no separate reviewer role/queue.
 
@@ -98,8 +97,7 @@ No fabricated metrics, dead buttons, or pre-commit success messages were found i
 
 ## 5. Gaps that matter most (ranked)
 
-1. **AI cost metering & budgets** — required by plan §17 and genuinely absent. Needed before scaling AI usage. (see AI_COST_MODEL.md)
-2. **Purchase PO/GRN workflow** — wholesalers/distributors (a target segment) expect it.
+1. **Purchase PO/GRN workflow** — wholesalers/distributors (a target segment) expect it.
 3. **Inventory transfers + stock counts** — needed for multi-branch stock integrity claims.
 4. **POS shifts/cashbook** — needed before "cash mismatch" alerts are meaningful.
 5. **Forecasting/recommendations** — Release C; gate on data-sufficiency, do not fake.

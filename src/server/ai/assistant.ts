@@ -25,6 +25,7 @@ import { createExpenseSchema } from "@/schemas/expenses";
 import { createPurchaseSchema, createSaleSchema } from "@/schemas/sales";
 import { latestRefs, loadCatalog, promptContextFor, recentTurns, rememberPreference, type ConversationRefs } from "./catalog";
 import { MUTATING_INTENTS, parsedIntentSchema, type ParsedIntent } from "./contract";
+import { budgetSkipLog, checkAiBudget, recordAiUsage, type BudgetDecision } from "@/server/services/ai-usage";
 import { WorkersAIParser } from "./llm-parser";
 import { plan, type Answer, type ClarifyOption, type Proposal, type ProposalView } from "./planner";
 import { parseWithRules } from "./rules-parser";
@@ -66,15 +67,22 @@ async function parseIntent(ctx: ServiceContext, text: string, llmContext: () => 
   if (rules.intent !== "UNKNOWN" && rules.confidence >= RULES_ACCEPT) return { parsed: rules, parser: "rules", model: null as string | null };
 
   const settings = await ctx.db.select().from(businessSettings).where(eq(businessSettings.businessId, ctx.businessId)).get();
-  if (ctx.env.AI && settings?.aiEnabled !== false) {
+  // Budget gate: if the shop is over its AI cap or has the kill switch on, don't call the paid
+  // model — fall back to the rules result. Billing/stock never reach this code, so they're safe.
+  const budget = ctx.env.AI && settings?.aiEnabled !== false ? await checkAiBudget(ctx) : { allowed: false, reason: "ok" as const };
+  if (ctx.env.AI && settings?.aiEnabled !== false && budget.allowed) {
     const model = ctx.env.AI_MODEL ?? "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-    const llm = await new WorkersAIParser(ctx.env.AI, model, ctx.logger).parse(text, await llmContext());
+    const llm = await new WorkersAIParser(ctx.env.AI, model, ctx.logger).parse(text, await llmContext(), (u) =>
+      void recordAiUsage(ctx, { provider: "workers-ai", model, task: "intent", inputTokens: u.inputTokens, outputTokens: u.outputTokens, latencyMs: u.latencyMs, status: u.status, routingReason: "rules_low_confidence" }),
+    );
     if (llm && llm.intent !== "UNKNOWN" && llm.confidence >= rules.confidence) {
       // Safety: mutations always need confirmation regardless of what the model said.
       const safe: ParsedIntent = { ...llm, requires_confirmation: MUTATING_INTENTS.has(llm.intent) ? true : llm.requires_confirmation };
       return { parsed: safe, parser: "llm", model };
     }
     if (llm?.intent === "UNKNOWN" && rules.intent === "UNKNOWN") return { parsed: llm, parser: "llm", model };
+  } else if (ctx.env.AI && settings?.aiEnabled !== false && !budget.allowed && budget.reason !== "ok") {
+    budgetSkipLog(ctx.logger, budget as BudgetDecision);
   }
   return { parsed: rules, parser: "rules", model: null };
 }
