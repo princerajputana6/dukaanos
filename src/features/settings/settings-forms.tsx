@@ -1,6 +1,6 @@
 "use client";
 import { useQueryClient } from "@tanstack/react-query";
-import { BellIcon, BuildingIcon, ChevronRightIcon, DatabaseIcon, KeyRoundIcon, MicIcon, PackageIcon, ReceiptTextIcon, ShieldCheckIcon, StoreIcon, UsersIcon } from "lucide-react";
+import { BellIcon, BuildingIcon, ChevronRightIcon, DatabaseIcon, KeyRoundIcon, MicIcon, PackageIcon, ReceiptTextIcon, ShieldCheckIcon, StoreIcon, UsersIcon , CoinsIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { toast } from "sonner";
@@ -29,6 +29,7 @@ const SECTIONS = [
   { href: "/settings/voice", label: "Voice & AI", desc: "Microphone, language, AI features", icon: MicIcon, perm: null },
   { href: "/settings/notifications", label: "Notifications", desc: "Low stock, daily summary, reminders", icon: BellIcon, perm: "settings.manage" },
   { href: "/settings/security", label: "Security", desc: "Password and sessions", icon: KeyRoundIcon, perm: null },
+  { href: "/settings/ai-usage", label: "AI usage", desc: "Your voice/AI spend and limit this month", icon: CoinsIcon, perm: "reports.view" },
   { href: "/settings/data", label: "Data", desc: "Export & backup", icon: DatabaseIcon, perm: "reports.view" },
 ] as const;
 

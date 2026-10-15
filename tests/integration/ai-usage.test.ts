@@ -1,6 +1,9 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { newId } from "@/lib/ids";
+import { getDb } from "@/server/db/client";
+import { runDailyJobs } from "@/server/services/notifications";
+import { createLogger } from "@/server/lib/logger";
 import { call, createProduct, key, signupOwner } from "./helpers";
 
 async function superAdmin() {
@@ -75,4 +78,33 @@ describe("AI usage metering & budgets", () => {
     const stock = await env.DB.prepare("SELECT current_stock_milli AS s FROM products WHERE id = ?").bind(coke).first<{ s: number }>();
     expect(stock?.s).toBe(32000); // 34 - 2 bottles, billing unaffected by AI budget
   });
+
+  it("shows a shop its own month-to-date AI usage and limit", async () => {
+    const admin = await superAdmin();
+    const owner = await signupOwner();
+    await seedUsage(owner.businessId, { task: "intent", model: "m", cost: 120, inTok: 800, outTok: 200 });
+    await seedUsage(owner.businessId, { task: "stt", model: "w", cost: 300, audioMs: 3000 });
+    await call("PUT", `/admin/ai-budget/${owner.businessId}`, { cookie: admin.cookie, body: { monthlyCapRupees: 10, killSwitch: false, alertPct: 80 } });
+
+    const r = await call("GET", "/business/ai-usage", { cookie: owner.cookie });
+    expect(r.status).toBe(200);
+    expect(r.body.data).toMatchObject({ monthSpendMicros: 420, monthCapMicros: 10_000_000, killSwitch: false, callsThisMonth: 2 });
+    expect(r.body.data.pctUsed).toBe(0); // 420 micros of ₹10 cap rounds to 0%
+    expect(r.body.data.byTask.map((t: { task: string }) => t.task).sort()).toEqual(["intent", "stt"]);
+  });
+
+  it("raises a daily notification when a shop crosses its AI budget threshold", async () => {
+    const admin = await superAdmin();
+    const owner = await signupOwner();
+    await env.DB.prepare("UPDATE businesses SET onboarded_at = ? WHERE id = ?").bind(Date.now(), owner.businessId).run();
+    // Cap ₹10 (=10,000,000 micros), alert at 80% → threshold 8,000,000. Seed 9,000,000 micros spent.
+    await call("PUT", `/admin/ai-budget/${owner.businessId}`, { cookie: admin.cookie, body: { monthlyCapRupees: 10, killSwitch: false, alertPct: 80 } });
+    await seedUsage(owner.businessId, { task: "intent", model: "m", cost: 9_000_000 });
+
+    await runDailyJobs(getDb(env.DB), env, Date.now(), createLogger({ test: "cron" }));
+    const note = await env.DB.prepare("SELECT title, type, link FROM notifications WHERE business_id = ? AND type = 'AI_BUDGET'").bind(owner.businessId).first<{ title: string; link: string }>();
+    expect(note).toBeTruthy();
+    expect(note!.link).toBe("/settings/ai-usage");
+  });
 });
+

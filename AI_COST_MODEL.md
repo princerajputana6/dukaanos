@@ -3,7 +3,7 @@
 ## Status: Phase 1 shipped (15 Oct 2026)
 Metering, budgets and the admin usage screen are **implemented**. `ai_usage_events` records one row per provider call (LLM intent + Whisper STT) with tokens/audio/est-cost/price-version/latency/status/retries (`src/server/services/ai-usage.ts`, `src/server/ai/pricing.ts`, migration `0006`). `ai_budgets` holds a per-shop monthly cap + kill switch; `checkAiBudget` gates the paid model in `assistant.parseIntent` and **fails open** / degrades to the deterministic rules parser when a cap is hit — core POS/stock never call this path (test: `tests/integration/ai-usage.test.ts`). Super admins see spend by task/model/shop and set caps at `/admin/ai-usage`.
 
-Remaining (future): per-business owner-facing usage view, daily spend-alert notifications (wire into the existing notifications/cron), and real provider token counts verified against Cloudflare Neuron billing.
+Owner-facing usage view (`/settings/ai-usage`, `GET /business/ai-usage`) and **daily spend-alert notifications** (the daily cron raises an `AI_BUDGET` notification when a shop crosses its `alert_bp` threshold or hits the cap, deduped per month) are now implemented. Remaining (ops, not code): reconcile estimated costs against actual Cloudflare Neuron billing.
 
 ## Current reality (audited, pre-Phase-1 baseline)
 - AI runs on the **Cloudflare Workers AI binding** (`@cf/meta/llama-3.3-70b-instruct-fp8-fast` for intent JSON, `@cf/openai/whisper-large-v3-turbo` for STT). No third-party API keys; billed in Cloudflare **Neurons**, not per-token invoices.

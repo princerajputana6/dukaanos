@@ -155,3 +155,27 @@ export type PlatformAiUsage = Awaited<ReturnType<typeof platformAiUsage>>;
 export function budgetSkipLog(logger: Logger, decision: BudgetDecision) {
   logger.info("ai call skipped by budget", { reason: decision.reason, spentMicros: decision.spentMicros, capMicros: decision.capMicros });
 }
+
+/** A shop owner's own month-to-date AI usage and budget (read-only; the cap is set by platform). */
+export async function ownAiUsage(ctx: ServiceContext) {
+  const since = istMonthStartMs(ctx.now);
+  const [budget, spend, byTask, calls] = await Promise.all([
+    ctx.db.select().from(aiBudgets).where(eq(aiBudgets.businessId, ctx.businessId)).get(),
+    monthToDateSpendMicros(ctx.db, ctx.businessId, ctx.now),
+    ctx.db
+      .select({ task: aiUsageEvents.task, costMicros: sql<number>`coalesce(sum(${aiUsageEvents.estCostMicros}), 0)`, calls: sql<number>`count(*)` })
+      .from(aiUsageEvents)
+      .where(and(eq(aiUsageEvents.businessId, ctx.businessId), gte(aiUsageEvents.createdAt, since)))
+      .groupBy(aiUsageEvents.task),
+    ctx.db.select({ n: sql<number>`count(*)` }).from(aiUsageEvents).where(and(eq(aiUsageEvents.businessId, ctx.businessId), gte(aiUsageEvents.createdAt, since))).get(),
+  ]);
+  const cap = budget?.monthlyCapMicros ?? null;
+  return {
+    monthSpendMicros: spend,
+    monthCapMicros: cap,
+    killSwitch: budget?.killSwitch ?? false,
+    pctUsed: cap && cap > 0 ? Math.min(100, Math.round((spend / cap) * 100)) : null,
+    callsThisMonth: Number(calls?.n ?? 0),
+    byTask: byTask.map((t) => ({ task: t.task, costMicros: Number(t.costMicros), calls: Number(t.calls) })),
+  };
+}

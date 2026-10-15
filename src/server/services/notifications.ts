@@ -3,9 +3,10 @@ import { formatMoney } from "@/lib/money";
 import { newId } from "@/lib/ids";
 import { addDays, todayIst } from "@/lib/dates";
 import type { Db } from "@/server/db/client";
-import { businesses, businessSettings, customers, dailySummaries, notifications } from "@/server/db/schema";
+import { aiBudgets, businesses, businessSettings, customers, dailySummaries, notifications } from "@/server/db/schema";
 import type { Logger } from "@/server/lib/logger";
 import type { ServiceContext } from "./context";
+import { monthToDateSpendMicros } from "./ai-usage";
 import { expenseTotal, outstandingTotals, salesTotals, topProducts } from "./reports";
 
 const visibleTo = (ctx: ServiceContext) => and(eq(notifications.businessId, ctx.businessId), or(isNull(notifications.userId), eq(notifications.userId, ctx.userId)));
@@ -113,6 +114,31 @@ export async function runDailyJobs(db: Db, env: Env, now: number, logger: Logger
               })
               .onConflictDoNothing();
           }
+        }
+      }
+      // AI budget alert: once per month when month-to-date spend crosses the alert threshold.
+      const budget = await db.select().from(aiBudgets).where(eq(aiBudgets.businessId, b.id)).get();
+      if (budget?.monthlyCapMicros && !budget.killSwitch) {
+        const spent = await monthToDateSpendMicros(db, b.id, now);
+        const threshold = Math.floor((budget.monthlyCapMicros * budget.alertBp) / 10000);
+        if (spent >= threshold) {
+          const pct = Math.round((spent / budget.monthlyCapMicros) * 100);
+          const atCap = spent >= budget.monthlyCapMicros;
+          await db
+            .insert(notifications)
+            .values({
+              id: newId(now),
+              businessId: b.id,
+              type: "AI_BUDGET",
+              title: atCap ? "AI limit reached" : "AI usage is high",
+              body: atCap
+                ? `This month's AI allowance is used up. Voice/AI features pause until next month — billing and stock keep working. Contact Suvakta to raise the limit.`
+                : `You've used ${pct}% of this month's AI allowance (${formatMoney(spent / 10000, { compact: true })} of ${formatMoney(budget.monthlyCapMicros / 10000, { compact: true })}).`,
+              link: "/settings/ai-usage",
+              dedupeKey: `ai-budget:${today.slice(0, 7)}:${atCap ? "cap" : "warn"}`,
+              createdAt: now,
+            })
+            .onConflictDoNothing();
         }
       }
       done++;

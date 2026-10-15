@@ -198,3 +198,8 @@ Recommend **2a** first (smaller, strengthens an existing advertised claim); 2b n
 ### Phase 3c — Customer & supplier insights (Release C) — shipped (15 Oct 2026)
 - Extended services/insights.ts with two more grounded rules: **supplier price jump** (a product's latest purchase cost ≥15% above the previous one → check selling price/margin) and **inactive regulars** (customers with 3+ past visits, silent for 30+ days → win-back). Same read-only insight cards; no new UI or migration.
 - Tests: +2 (price-jump between two purchases, lapsed regular). pnpm check → 21 files/164 tests, build ok.
+
+### Phase 1 follow-up — AI budget alerts & owner usage — shipped (15 Oct 2026)
+- Daily cron (`runDailyJobs`) raises an `AI_BUDGET` notification when a shop crosses its alert threshold (alert_bp) or reaches the cap — deduped per month; core POS/stock unaffected.
+- Owner-facing `/settings/ai-usage` (`GET /business/ai-usage`, reports.view): month-to-date spend, cap + % used, by-task breakdown. Platform sets the cap; owners view only.
+- Tests +2 (owner usage summary, cron threshold notification). pnpm check → 22 files/168 tests, build ok. No migration (reuses ai_usage_events/ai_budgets).
