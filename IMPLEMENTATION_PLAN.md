@@ -166,3 +166,8 @@ Gate: `pnpm check` (typecheck + lint + test + build) + migration review. No prod
 - **2a — Inventory transfers + stock counts:** new movement types + `stock_counts`/`stock_count_lines`; keeps the multi-branch stock-integrity claim honest. Additive.
 - **2b — Purchase PO → approval → GRN:** `purchase_orders`/`goods_receipts`; needed for the wholesaler/distributor segment. Additive.
 Recommend **2a** first (smaller, strengthens an existing advertised claim); 2b next.
+
+### Phase 2a — Stock counts + branch transfers — ☑ shipped (15 Oct 2026)
+- Backend (migration `0007`) + UI. Stock-count sheet (`/inventory/count`): enter counted qty, live difference, review, confirm → sets stock via `COUNT` movements; history + detail. Transfer (`/inventory/transfer`): pick sibling branch, add products, atomic `TRANSFER_OUT`/`TRANSFER_IN`.
+- Verified in-browser: count applied end-to-end (stock 34→30), transfer screen lists sibling branch. `pnpm check` → 17 files/150 tests, build ok.
+- Next: **Phase 2b — Purchase PO → approval → GRN**, or POS shifts/cashbook.

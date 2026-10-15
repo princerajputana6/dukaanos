@@ -1,6 +1,6 @@
 "use client";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { AlertTriangleIcon, BoxesIcon, IndianRupeeIcon, PackageIcon, PackageXIcon, PlusIcon, SearchIcon, SlidersHorizontalIcon } from "lucide-react";
+import { AlertTriangleIcon, ArrowRightLeftIcon, BoxesIcon, ClipboardCheckIcon, IndianRupeeIcon, PackageIcon, PackageXIcon, PlusIcon, SearchIcon, SlidersHorizontalIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { LoadMore } from "@/components/shared/load-more";
@@ -57,9 +57,21 @@ export function InventoryView() {
         actions={
           <>
             {can("inventory.adjust") && (
-              <Button variant="outline" onClick={() => setAdjustOpen(true)}>
-                <SlidersHorizontalIcon /> Adjust stock
-              </Button>
+              <>
+                <Button asChild variant="outline">
+                  <Link href="/inventory/count">
+                    <ClipboardCheckIcon /> Stock count
+                  </Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href="/inventory/transfer">
+                    <ArrowRightLeftIcon /> Transfer
+                  </Link>
+                </Button>
+                <Button variant="outline" onClick={() => setAdjustOpen(true)}>
+                  <SlidersHorizontalIcon /> Adjust stock
+                </Button>
+              </>
             )}
             {can("inventory.create") && (
               <Button asChild>

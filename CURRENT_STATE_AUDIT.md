@@ -15,7 +15,7 @@ Suvakta is **not** an early prototype. It is a working, multi-tenant, voice-firs
 The real gaps versus this master plan are in **advanced/ops breadth**, not core correctness:
 - **AI cost metering & budgets** (plan §17): **Implemented in Phase 1** — `ai_usage_events` + `ai_budgets`, per-call recording, per-shop cap/kill switch that degrades AI while POS keeps working, and an `/admin/ai-usage` screen.
 - **Purchase Order → approval → GRN workflow** (§11): purchases post stock immediately on create; no PO states. → **Partial**
-- **Inventory transfers between branches, stock counts/reconciliation, POS shifts/cashbook** (§9, §13): → **Not found**
+- **POS shifts/cashbook** (§13): → **Not found**. (Inventory transfers + stock counts shipped in Phase 2a.)
 - **Forecasting / reorder drafts / anomaly / insights** (Release C, §18): → **Not found**
 - **Split tender** (§10): single payment method per sale. → **Not found**
 - **Database choice** (§21): runs on Cloudflare **D1 (SQLite)**, not PostgreSQL/Hyperdrive. Invariants are enforced via DB triggers + idempotency + tests. This is a deliberate, documented trade-off — see ARCHITECTURE.md and the decision note in §7 below.
@@ -72,7 +72,6 @@ No fabricated metrics, dead buttons, or pre-commit success messages were found i
 - **Confidence→review surfacing** — proposals flag `needsReview` under 0.9 but there is no separate reviewer role/queue.
 
 ### Not found (vs plan)
-- Inventory **transfers** between branches/warehouses; **stock counts / reconciliation** (`stock_counts` table absent).
 - **POS shifts / cashbook** (`pos_shifts` absent).
 - **Split tender** (multiple payments per sale).
 - **Forecasting, reorder drafts, anomaly detection, insight cards** (Release C; no `forecast_*`/`recommendations` tables).
@@ -98,7 +97,6 @@ No fabricated metrics, dead buttons, or pre-commit success messages were found i
 ## 5. Gaps that matter most (ranked)
 
 1. **Purchase PO/GRN workflow** — wholesalers/distributors (a target segment) expect it.
-3. **Inventory transfers + stock counts** — needed for multi-branch stock integrity claims.
 4. **POS shifts/cashbook** — needed before "cash mismatch" alerts are meaningful.
 5. **Forecasting/recommendations** — Release C; gate on data-sufficiency, do not fake.
 
