@@ -87,3 +87,35 @@ describe("voice: browser speech network failure", () => {
     await expect(s.result).rejects.toBeInstanceOf(SpeechError);
   });
 });
+
+/** A recognition engine that produces no transcript — mimics iOS/flaky-Android Web Speech. */
+class EmptyRecognition extends FailingRecognition {
+  override start() {
+    setTimeout(() => this.onend?.(), 5);
+  }
+}
+
+describe("voice: mobile routing", () => {
+  const IPHONE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1";
+  const ANDROID_UA = "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36";
+  const withUA = (ua: string) => vi.stubGlobal("navigator", { userAgent: ua, mediaDevices: { getUserMedia: async () => ({ getTracks: () => [{ stop() {} }] }) } });
+
+  it("uses server speech upfront on iOS (Web Speech API is unreliable there)", async () => {
+    withUA(IPHONE_UA);
+    const { pickProvider } = await import("@/features/voice/speech");
+    expect(pickProvider("auto")?.id).toBe("server");
+    // An explicit browser preference is still honoured.
+    expect(pickProvider("browser")?.id).toBe("browser");
+  });
+
+  it("keeps the browser engine upfront on Android, then switches to server after it hears nothing", async () => {
+    withUA(ANDROID_UA);
+    vi.stubGlobal("webkitSpeechRecognition", EmptyRecognition);
+    const { pickProvider, startListening } = await import("@/features/voice/speech");
+    expect(pickProvider("auto")?.id).toBe("browser");
+    const res = await startListening("auto", {}).result;
+    expect(res.kind).toBe("empty");
+    // The flaky empty result is remembered, so the next tap uses reliable server speech.
+    expect(pickProvider("auto")?.id).toBe("server");
+  });
+});

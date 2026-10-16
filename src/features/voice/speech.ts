@@ -87,6 +87,31 @@ function getSR(): SRCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
+/** iOS / iPadOS, where the Web Speech API exists but is unreliable (often returns no transcript). */
+function isIOS(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  // iPadOS 13+ masquerades as desktop "Macintosh" but is a touch device.
+  const iPadOS = /Macintosh/.test(ua) && typeof document !== "undefined" && "ontouchend" in document;
+  return /iPad|iPhone|iPod/.test(ua) || iPadOS;
+}
+
+/** In-app webviews (Instagram, Facebook, etc.) frequently ship a broken/absent Web Speech API. */
+function isInAppWebView(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /FBAN|FBAV|Instagram|Line\/|Twitter|MicroMessenger|GSA\//.test(navigator.userAgent || "");
+}
+
+function isTouchMobile(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return isIOS() || /Android|Mobile/i.test(navigator.userAgent || "");
+}
+
+/** True where the browser (Web Speech) engine can't be trusted, so we should record → server Whisper instead. */
+function browserSttUnreliable(): boolean {
+  return isIOS() || isInAppWebView();
+}
+
 export class BrowserSpeechProvider implements SpeechProvider {
   readonly id = "browser" as const;
   constructor(private lang = "hi-IN") {}
@@ -104,8 +129,10 @@ export class BrowserSpeechProvider implements SpeechProvider {
     rec.lang = this.lang; // hi-IN recognises Hindi, English and Hinglish well
     rec.interimResults = true;
     // Continuous mode so a short pause mid-sentence doesn't cut the user off; we stop
-    // ourselves after a real silence (or when the user taps stop).
-    rec.continuous = true;
+    // ourselves after a real silence (or when the user taps stop). iOS Safari does not
+    // support continuous recognition — forcing it there yields an immediate end with no
+    // transcript, so leave it off on iOS.
+    rec.continuous = !isIOS();
     rec.maxAlternatives = 1;
     const started = Date.now();
     let finalText = "";
@@ -298,7 +325,10 @@ export function pickProvider(pref: string): SpeechProvider | null {
   const server = new ServerSpeechProvider();
   if (pref === "server") return server.isSupported() ? server : browser.isSupported() ? browser : null;
   if (pref === "browser") return browser.isSupported() ? browser : server.isSupported() ? server : null;
-  if (browserSttBroken() && server.isSupported()) return server;
+  // Auto: on iOS / in-app webviews the Web Speech API claims support but rarely returns a
+  // transcript, so prefer the reliable record → Whisper path. Same once we've seen the browser
+  // engine fail on this device.
+  if ((browserSttUnreliable() || browserSttBroken()) && server.isSupported()) return server;
   return browser.isSupported() ? browser : server.isSupported() ? server : null;
 }
 
@@ -319,16 +349,24 @@ export function startListening(pref: string, cb: TranscribeCallbacks & { onFallb
       aborted = true;
       current.abort();
     },
-    result: current.result.catch((err: unknown) => {
-      const server = new ServerSpeechProvider();
-      const recoverable = err instanceof SpeechError && (err.code === "network" || err.code === "failed");
-      if (first.id !== "browser" || !recoverable || !server.isSupported() || aborted) throw err;
-      markBrowserSttBroken();
-      cb.onFallback?.();
-      handle.provider = "server";
-      current = server.transcribe(cb);
-      return current.result;
-    }),
+    result: current.result
+      .then((res) => {
+        // The browser engine finished but heard nothing on a touch device. On mobile this is
+        // usually a flaky Web Speech engine rather than real silence, so remember it and let
+        // the next tap use the reliable server engine. (We can't re-run now — the audio is gone.)
+        if (res.kind === "empty" && first.id === "browser" && isTouchMobile() && new ServerSpeechProvider().isSupported()) markBrowserSttBroken();
+        return res;
+      })
+      .catch((err: unknown) => {
+        const server = new ServerSpeechProvider();
+        const recoverable = err instanceof SpeechError && (err.code === "network" || err.code === "failed");
+        if (first.id !== "browser" || !recoverable || !server.isSupported() || aborted) throw err;
+        markBrowserSttBroken();
+        cb.onFallback?.();
+        handle.provider = "server";
+        current = server.transcribe(cb);
+        return current.result;
+      }),
   };
   return handle;
 }
