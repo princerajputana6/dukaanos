@@ -74,11 +74,29 @@ export default function Page() {
         keep it.
       </p>
 
-      <h2>9. Intellectual property</h2>
+      <h2>9. Intellectual property and restrictions</h2>
       <p>
-        The Service, including its software, design, the {n} name and logo, is owned by us and protected by law. These Terms do not give you any right to use our brand without
-        permission.
+        The Service, including its software, source code, design, user interface, workflows, the {n} name and logo, is owned by us and protected by law. These Terms do not give you any
+        right to use our brand without permission, and grant you only a limited, non-exclusive, non-transferable right to use the Service as intended.
       </p>
+      <p>Except to the extent this restriction is prohibited by law, you must not, and must not permit anyone else to:</p>
+      <ul>
+        <li>
+          <strong>reverse engineer, decompile or disassemble</strong> the Service, or otherwise attempt to derive its source code, underlying ideas, algorithms, data models or logic;
+        </li>
+        <li>
+          <strong>copy, clone, reproduce, or create a derivative or competing product</strong> from the Service, its interface or its behaviour, in whole or in part;
+        </li>
+        <li>
+          <strong>scrape, crawl, harvest or systematically extract</strong> data, content or interfaces from the Service, or access it through automated means or any client other than
+          the official {n} apps;
+        </li>
+        <li>
+          probe, bypass or interfere with our authentication, rate limits, security or access controls, or test the Service's vulnerability without our prior written consent;
+        </li>
+        <li>remove, obscure or alter any proprietary notices, or resell, sublicense or white-label the Service without a written agreement with us.</li>
+      </ul>
+      <p>We reserve all rights not expressly granted. Breach of this section is a material breach and may result in immediate suspension and legal action.</p>
 
       <h2>10. Limitation of liability</h2>
       <p>

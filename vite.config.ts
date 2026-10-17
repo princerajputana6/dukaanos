@@ -4,6 +4,9 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
+  // Never emit source maps to the client: shipping them would hand attackers the readable
+  // original source (comments, names). Production is already minified; this keeps it guaranteed.
+  build: { sourcemap: false },
   plugins: [
     tailwindcss(),
     vinext(),
