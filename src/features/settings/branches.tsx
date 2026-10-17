@@ -55,7 +55,7 @@ export function BranchesSettings() {
           subscription_id: r.subscriptionId,
           name: "Suvakta",
           description: "Extra branch — monthly subscription",
-          theme: { color: "#0f8f74" },
+          theme: { color: "#2f54d9" },
           handler: () => resolve(),
           modal: { ondismiss: () => reject(new Error("Payment was cancelled.")) },
         });
