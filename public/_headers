@@ -1,0 +1,11 @@
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), geolocation=(), browsing-topics=(), microphone=(self)
+  Content-Security-Policy: frame-ancestors 'self'; base-uri 'self'; object-src 'none'
+
+# Content-hashed assets are immutable (mirrors vinext's generated rule).
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
