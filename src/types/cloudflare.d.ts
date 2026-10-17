@@ -37,6 +37,17 @@ declare global {
     EMAIL_FROM?: string;
     /** Cloudflare Email Service `send_email` binding (optional). */
     EMAIL?: SendEmail;
+    /** Razorpay (extra-branch subscriptions). Billing is disabled when these are absent. */
+    RAZORPAY_KEY_ID?: string;
+    RAZORPAY_KEY_SECRET?: string;
+    RAZORPAY_WEBHOOK_SECRET?: string;
+    /** Razorpay Plan id (plan_…) for one extra branch / month. */
+    RAZORPAY_BRANCH_PLAN_ID?: string;
+    /** Price shown to the user, in paise (e.g. 49900 = ₹499). Defaults when unset. */
+    BRANCH_PRICE_PAISE?: string;
+    /** Cloudflare Turnstile (bot protection on signup/login). Skipped when absent. */
+    TURNSTILE_SITE_KEY?: string;
+    TURNSTILE_SECRET_KEY?: string;
   }
 }
 

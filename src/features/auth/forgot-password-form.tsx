@@ -2,26 +2,30 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { MailCheckIcon } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { Field } from "@/components/shared/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { apiPost, errorMessage } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { forgotPasswordSchema } from "@/schemas/auth";
+import { Turnstile, useTurnstileSiteKey } from "./turnstile";
 
 type In = z.input<typeof forgotPasswordSchema>;
 
 export function ForgotPasswordForm() {
   const [done, setDone] = useState<{ message: string; devResetLink?: string } | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
+  const siteKey = useTurnstileSiteKey();
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const onToken = useCallback((t: string | null) => setCaptcha(t), []);
   const form = useForm<In>({ resolver: zodResolver(forgotPasswordSchema), defaultValues: { identifier: "" } });
 
   const onSubmit = form.handleSubmit(async (values) => {
     setServerError(null);
     try {
-      setDone(await apiPost("/auth/forgot-password", values));
+      setDone(await api("/auth/forgot-password", { method: "POST", body: values, headers: captcha ? { "cf-turnstile-token": captcha } : undefined }));
     } catch (err) {
       setServerError(errorMessage(err));
     }
@@ -62,12 +66,13 @@ export function ForgotPasswordForm() {
         <Field id="identifier" label="Mobile number or email" error={form.formState.errors.identifier?.message}>
           <Input id="identifier" autoComplete="username" {...form.register("identifier")} />
         </Field>
+        {siteKey && <Turnstile siteKey={siteKey} onToken={onToken} />}
         {serverError && (
           <p role="alert" className="rounded-xl bg-destructive-soft px-3.5 py-2.5 text-sm font-medium text-destructive">
             {serverError}
           </p>
         )}
-        <Button type="submit" size="lg" className="w-full" loading={form.formState.isSubmitting}>
+        <Button type="submit" size="lg" className="w-full" loading={form.formState.isSubmitting} disabled={!!siteKey && !captcha}>
           Send reset link
         </Button>
       </form>

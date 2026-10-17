@@ -1,24 +1,32 @@
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Field } from "@/components/shared/field";
 import { PasswordInput } from "@/components/shared/password-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { apiPost, errorMessage } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { loginSchema, type LoginInput } from "@/schemas/auth";
+import { Turnstile, useTurnstileSiteKey } from "./turnstile";
 
 export function LoginForm() {
   const [serverError, setServerError] = useState<string | null>(null);
+  const siteKey = useTurnstileSiteKey();
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const onToken = useCallback((t: string | null) => setCaptcha(t), []);
   const form = useForm<LoginInput>({ resolver: zodResolver(loginSchema), defaultValues: { identifier: "", password: "" } });
   const { errors, isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async (values) => {
     setServerError(null);
     try {
-      const res = await apiPost<{ businessId: string | null; platformRole: string | null }>("/auth/login", values);
+      const res = await api<{ businessId: string | null; platformRole: string | null }>("/auth/login", {
+        method: "POST",
+        body: values,
+        headers: captcha ? { "cf-turnstile-token": captcha } : undefined,
+      });
       const next = new URLSearchParams(window.location.search).get("next");
       const home = res.platformRole === "SUPER_ADMIN" && !res.businessId ? "/admin" : res.businessId ? "/dashboard" : "/onboarding";
       window.location.assign(next && next.startsWith("/") && !next.startsWith("//") ? next : home);
@@ -52,12 +60,13 @@ export function LoginForm() {
             Forgot password?
           </Link>
         </div>
+        {siteKey && <Turnstile siteKey={siteKey} onToken={onToken} />}
         {serverError && (
           <p role="alert" className="rounded-xl bg-destructive-soft px-3.5 py-2.5 text-sm font-medium text-destructive">
             {serverError}
           </p>
         )}
-        <Button type="submit" size="lg" className="w-full" loading={isSubmitting}>
+        <Button type="submit" size="lg" className="w-full" loading={isSubmitting} disabled={!!siteKey && !captcha}>
           Log in
         </Button>
       </form>

@@ -18,14 +18,66 @@ import { api, apiGet, apiPost, errorMessage } from "@/lib/api";
 import type { BranchList } from "@/lib/api-types";
 import { INDIAN_STATES } from "@/lib/domain";
 
+interface BranchBilling {
+  subscriptions: { id: string; status: string; amountPaise: number; currentPeriodEnd: number | null; branchBusinessId: string | null; createdAt: number }[];
+  billingEnabled: boolean;
+  pricePaise: number;
+}
+
+const PAID_ACTIVE = (s: { status: string }) => s.status === "ACTIVE" || s.status === "AUTHENTICATED";
+const rupees = (paise: number) => Math.round(paise / 100);
+
 export function BranchesSettings() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["branches"], queryFn: ({ signal }) => apiGet<BranchList>("/branches", signal) });
+  const billing = useQuery({ queryKey: ["branch-billing"], queryFn: ({ signal }) => apiGet<BranchBilling>("/billing/subscriptions", signal) });
   const [adding, setAdding] = React.useState(false);
+  const [buying, setBuying] = React.useState(false);
   if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
   if (!q.data) return <ListSkeleton rows={3} />;
   const d = q.data;
-  const atLimit = !!d.license && d.usedBranches >= d.license.maxBranches;
+  const activePaid = (billing.data?.subscriptions ?? []).filter(PAID_ACTIVE).length;
+  const baseMax = d.license?.maxBranches ?? 0;
+  const effectiveMax = baseMax + activePaid;
+  const atLimit = !!d.license && d.usedBranches >= effectiveMax;
+  const billingEnabled = billing.data?.billingEnabled ?? false;
+  const pricePaise = billing.data?.pricePaise ?? 0;
+
+  async function buyBranch() {
+    setBuying(true);
+    const t = toast.loading("Opening secure payment…");
+    try {
+      const r = await apiPost<{ subscriptionId: string; keyId: string; amountPaise: number }>("/billing/branch/subscribe", {});
+      const Razorpay = await loadRazorpay();
+      await new Promise<void>((resolve, reject) => {
+        const rzp = new Razorpay({
+          key: r.keyId,
+          subscription_id: r.subscriptionId,
+          name: "Suvakta",
+          description: "Extra branch — monthly subscription",
+          theme: { color: "#0f8f74" },
+          handler: () => resolve(),
+          modal: { ondismiss: () => reject(new Error("Payment was cancelled.")) },
+        });
+        rzp.open();
+      });
+      toast.loading("Confirming payment…", { id: t });
+      let unlocked = false;
+      for (let i = 0; i < 20 && !unlocked; i++) {
+        await new Promise((res) => setTimeout(res, 1500));
+        const b = await apiGet<BranchBilling>("/billing/subscriptions");
+        unlocked = b.subscriptions.some(PAID_ACTIVE) && b.subscriptions.filter(PAID_ACTIVE).length > activePaid;
+      }
+      await qc.invalidateQueries();
+      toast.success(unlocked ? "Branch unlocked — add its details." : "Payment received. Unlocking may take a moment.", { id: t });
+      if (unlocked) setAdding(true);
+    } catch (err) {
+      toast.error(errorMessage(err), { id: t });
+    } finally {
+      setBuying(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-2xl">
       <PageHeader
@@ -33,11 +85,16 @@ export function BranchesSettings() {
         description="Each branch has its own stock, sales, khata and staff."
         back={{ href: "/settings", label: "Settings" }}
         actions={
-          d.tenant.isOwner && (
-            <Button onClick={() => setAdding(true)} disabled={atLimit}>
+          d.tenant.isOwner &&
+          (atLimit ? (
+            <Button onClick={() => void buyBranch()} loading={buying} disabled={!billingEnabled}>
+              <PlusIcon /> Add a branch{pricePaise ? ` · ₹${rupees(pricePaise)}/mo` : ""}
+            </Button>
+          ) : (
+            <Button onClick={() => setAdding(true)}>
               <PlusIcon /> Add branch
             </Button>
-          )
+          ))
         }
       />
       {d.license && (
@@ -51,12 +108,20 @@ export function BranchesSettings() {
           </CardHeader>
           <CardContent className="space-y-1 text-[14px]">
             <p>
-              Branches: <strong>{d.usedBranches}</strong> of {d.license.maxBranches} · Users: up to {d.license.maxUsers}
+              Branches: <strong>{d.usedBranches}</strong> of {effectiveMax}
+              {activePaid > 0 ? ` (${baseMax} on plan + ${activePaid} paid)` : ""} · Users: up to {d.license.maxUsers}
             </p>
             <p className="text-muted-foreground">
               <ValidUntil date={d.license.validUntil} />
             </p>
-            {atLimit && <p className="text-[13px] text-warning-foreground">You&apos;ve used all branches on your plan. Contact Suvakta support to upgrade.</p>}
+            {atLimit &&
+              (billingEnabled ? (
+                <p className="text-[13px] text-muted-foreground">
+                  Add another branch for <strong>₹{rupees(pricePaise)}/month</strong>, billed automatically by UPI AutoPay or card. If a payment fails, that branch becomes read-only until it resumes — your data is never deleted.
+                </p>
+              ) : (
+                <p className="text-[13px] text-warning-foreground">You&apos;ve used all branches on your plan. Contact Suvakta support to add more.</p>
+              ))}
           </CardContent>
         </Card>
       )}
@@ -99,6 +164,22 @@ export function BranchesSettings() {
       />
     </div>
   );
+}
+
+type RazorpayCtor = new (opts: Record<string, unknown>) => { open: () => void };
+
+/** Loads Razorpay Checkout on demand (external script; allowed by our CSP). */
+function loadRazorpay(): Promise<RazorpayCtor> {
+  return new Promise((resolve, reject) => {
+    const w = window as unknown as { Razorpay?: RazorpayCtor };
+    if (w.Razorpay) return resolve(w.Razorpay);
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.async = true;
+    s.onload = () => (w.Razorpay ? resolve(w.Razorpay) : reject(new Error("Payment window failed to load.")));
+    s.onerror = () => reject(new Error("Couldn't load the payment window. Check your internet."));
+    document.body.appendChild(s);
+  });
 }
 
 function AddBranch({ open, onOpenChange, onDone }: { open: boolean; onOpenChange: (o: boolean) => void; onDone: () => Promise<void> }) {

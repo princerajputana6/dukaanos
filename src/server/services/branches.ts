@@ -23,6 +23,7 @@ import {
 import { AppError, notFound } from "@/server/lib/errors";
 import type { createBranchSchema } from "@/schemas/platform";
 import { newBusinessStmts } from "./auth";
+import { activeBranchSubs, linkPaidBranch } from "./billing";
 import { requirePermission, type ServiceContext } from "./context";
 import { auditStmt, commit, type Stmt } from "./engine";
 
@@ -85,9 +86,12 @@ export async function createBranch(ctx: ServiceContext, input: CreateBranchInput
   if (tenant.ownerUserId !== ctx.userId) throw new AppError("FORBIDDEN", "Only the account owner can add branches.");
   if (!license) throw new AppError("LICENSE_INACTIVE", "No licence found for this account.");
   const used = await branchCount(ctx.db, tenant.id);
-  if (used >= license.maxBranches) {
-    throw new AppError("LIMIT_REACHED", `Your ${LICENSE_PLANS[license.plan as LicensePlan]?.label ?? license.plan} plan allows ${license.maxBranches} branch${license.maxBranches === 1 ? "" : "es"}. Contact Suvakta to upgrade.`);
+  // Effective allowance = plan's base branches + any active paid branch subscriptions.
+  const paid = await activeBranchSubs(ctx.db, tenant.id);
+  if (used >= license.maxBranches + paid) {
+    throw new AppError("LIMIT_REACHED", `Your ${LICENSE_PLANS[license.plan as LicensePlan]?.label ?? license.plan} plan allows ${license.maxBranches} branch${license.maxBranches === 1 ? "" : "es"}. Add another branch from Settings → Branches to continue.`);
   }
+  const isPaidBranch = used >= license.maxBranches;
   const source = await ctx.db.select().from(businesses).where(eq(businesses.id, ctx.businessId)).get();
   const [srcSettings, srcGst] = await Promise.all([
     ctx.db.select().from(businessSettings).where(eq(businessSettings.businessId, ctx.businessId)).get(),
@@ -120,6 +124,9 @@ export async function createBranch(ctx: ServiceContext, input: CreateBranchInput
   }
   stmts.push(auditStmt(ctx, { action: "BRANCH_CREATED", entityType: "business", entityId: businessId, summary: `Added branch ${input.name} (${branchCode})`, after: input }));
   await commit(ctx, stmts, null);
+  // A paid branch is tied to a subscription so that, if payment lapses, this branch (not the
+  // plan's free branches) is the one suspended.
+  if (isPaidBranch) await linkPaidBranch(ctx.db, tenant.id, businessId, ctx.now);
 
   let copied = 0;
   if (input.copyCatalogue) copied = await copyCatalogue(ctx, ctx.businessId, businessId);

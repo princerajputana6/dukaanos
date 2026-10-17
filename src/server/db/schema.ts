@@ -127,6 +127,37 @@ export const licenseEvents = sqliteTable(
   (t) => [index("le_tenant_created_idx").on(t.tenantId, t.createdAt)],
 );
 
+/**
+ * Paid extra-branch subscriptions (Razorpay monthly auto-pay). Each ACTIVE row raises the
+ * tenant's effective branch allowance by one; when it lapses the funded branch is suspended
+ * (read-only) rather than deleted. The webhook is the source of truth for `status`.
+ */
+export const branchSubscriptions = sqliteTable(
+  "branch_subscriptions",
+  {
+    id: id(),
+    tenantId: text("tenant_id").notNull(),
+    ownerUserId: text("owner_user_id").notNull(),
+    /** Razorpay subscription id (sub_…). */
+    providerSubId: text("provider_sub_id").notNull(),
+    providerPlanId: text("provider_plan_id").notNull(),
+    /** CREATED | AUTHENTICATED | ACTIVE | PENDING | HALTED | CANCELLED | COMPLETED | EXPIRED */
+    status: text("status").notNull().default("CREATED"),
+    /** The branch this subscription funds (linked when that branch is created). */
+    branchBusinessId: text("branch_business_id"),
+    amountPaise: integer("amount_paise").notNull(),
+    currentPeriodEnd: integer("current_period_end"),
+    lastPaymentId: text("last_payment_id"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("branch_subs_provider_uq").on(t.providerSubId),
+    index("branch_subs_tenant_idx").on(t.tenantId, t.status),
+    index("branch_subs_branch_idx").on(t.branchBusinessId),
+  ],
+);
+
 /** Actions taken in the super admin console. */
 export const platformAuditLogs = sqliteTable(
   "platform_audit_logs",

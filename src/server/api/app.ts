@@ -7,6 +7,7 @@ import { csrf, loadSession, requestContext, requireUser } from "./middleware";
 import { ok } from "./respond";
 import { authRoutes } from "./routes/auth";
 import { adminRoutes } from "./routes/admin";
+import { billingRoutes, billingWebhook } from "./routes/billing";
 import { aiRoutes } from "./routes/ai";
 import { branchRoutes } from "./routes/branches";
 import { businessRoutes } from "./routes/business";
@@ -67,6 +68,9 @@ export function createApp() {
   app.route("/team", teamRoutes);
   app.route("/ai", aiRoutes);
   app.route("/branches", branchRoutes);
+  // Razorpay webhook is public (signature-verified) — register it before the authed billing router.
+  app.post("/billing/webhook", billingWebhook);
+  app.route("/billing", billingRoutes);
   app.route("/admin", adminRoutes);
 
   app.notFound((c) => c.json(toErrorBody(new AppError("NOT_FOUND", "Endpoint not found.")), 404));

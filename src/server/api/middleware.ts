@@ -30,8 +30,11 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
  * CSRF protection: session cookie is SameSite=Lax, and every state-changing request must
  * come from our own origin (Origin header) or be marked same-origin by the browser.
  */
+/** Server-to-server endpoints that authenticate by signature, not by cookie/origin. */
+const CSRF_EXEMPT = new Set(["/api/billing/webhook"]);
+
 export const csrf: MiddlewareHandler<AppEnv> = async (c, next) => {
-  if (SAFE_METHODS.has(c.req.method)) return next();
+  if (SAFE_METHODS.has(c.req.method) || CSRF_EXEMPT.has(new URL(c.req.url).pathname)) return next();
   const origin = c.req.header("origin");
   const expected = new URL(c.req.url).origin;
   const fetchSite = c.req.header("sec-fetch-site");
@@ -95,6 +98,31 @@ export function requirePerm(...perms: Permission[]): MiddlewareHandler<AppEnv> {
     return next();
   };
 }
+
+/**
+ * Cloudflare Turnstile bot check for pre-auth endpoints (signup/login/forgot). No-op when
+ * TURNSTILE_SECRET_KEY is unset (local/dev or not yet configured); otherwise the client must
+ * send a valid token in the `cf-turnstile-token` header.
+ */
+export const turnstile: MiddlewareHandler<AppEnv> = async (c, next) => {
+  const secret = c.env.TURNSTILE_SECRET_KEY;
+  if (secret) {
+    const token = c.req.header("cf-turnstile-token");
+    if (!token) throw new AppError("FORBIDDEN", "Please complete the verification challenge and try again.");
+    const form = new URLSearchParams({ secret, response: token });
+    const ip = c.get("ip");
+    if (ip) form.set("remoteip", ip);
+    let ok: boolean;
+    try {
+      const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
+      ok = ((await res.json()) as { success?: boolean }).success === true;
+    } catch {
+      ok = false;
+    }
+    if (!ok) throw new AppError("FORBIDDEN", "Verification failed. Please reload the page and try again.");
+  }
+  return next();
+};
 
 /** Cloudflare Rate Limiting binding; no-op when the binding is absent (local/test). */
 export function rateLimit(binding: "AUTH_LIMITER" | "AI_LIMITER", keyOf: "ip" | "user"): MiddlewareHandler<AppEnv> {

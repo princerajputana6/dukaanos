@@ -6,19 +6,19 @@ import { clearSessionCookie, deleteSession, sessionCookie } from "@/server/auth/
 import { sessions } from "@/server/db/schema";
 import * as auth from "@/server/services/auth";
 import { body, ok } from "../respond";
-import { rateLimit, requireUser } from "../middleware";
+import { rateLimit, requireUser, turnstile } from "../middleware";
 import type { AppEnv } from "../types";
 
 const isHttps = (url: string) => new URL(url).protocol === "https:";
 
 export const authRoutes = new Hono<AppEnv>()
-  .post("/signup", rateLimit("AUTH_LIMITER", "ip"), async (c) => {
+  .post("/signup", rateLimit("AUTH_LIMITER", "ip"), turnstile, async (c) => {
     const input = await body(c, signupSchema);
     const res = await auth.signup(c.get("db"), input, meta(c));
     c.header("set-cookie", sessionCookie(res.token, res.expiresAt, isHttps(c.req.url)));
     return ok(c, { userId: res.userId, businessId: res.businessId }, 201);
   })
-  .post("/login", rateLimit("AUTH_LIMITER", "ip"), async (c) => {
+  .post("/login", rateLimit("AUTH_LIMITER", "ip"), turnstile, async (c) => {
     const input = await body(c, loginSchema);
     const res = await auth.login(c.get("db"), input, meta(c));
     c.header("set-cookie", sessionCookie(res.token, res.expiresAt, isHttps(c.req.url)));
@@ -30,7 +30,7 @@ export const authRoutes = new Hono<AppEnv>()
     c.header("set-cookie", clearSessionCookie(isHttps(c.req.url)));
     return ok(c, { loggedOut: true });
   })
-  .post("/forgot-password", rateLimit("AUTH_LIMITER", "ip"), async (c) => {
+  .post("/forgot-password", rateLimit("AUTH_LIMITER", "ip"), turnstile, async (c) => {
     const { identifier } = await body(c, forgotPasswordSchema);
     const reset = await auth.createPasswordReset(c.get("db"), identifier, c.get("now"));
     const devMode = c.env.ENVIRONMENT === "development" || c.env.ENVIRONMENT === "test";

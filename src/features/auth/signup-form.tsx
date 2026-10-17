@@ -1,22 +1,26 @@
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { Field } from "@/components/shared/field";
 import { PasswordInput } from "@/components/shared/password-input";
 import { Button } from "@/components/ui/button";
 import { Input, NativeSelect } from "@/components/ui/input";
-import { apiPost, errorMessage } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { BUSINESS_TYPES } from "@/lib/domain";
 import { signupSchema } from "@/schemas/auth";
+import { Turnstile, useTurnstileSiteKey } from "./turnstile";
 
 type In = z.input<typeof signupSchema>;
 type Out = z.output<typeof signupSchema>;
 
 export function SignupForm() {
   const [serverError, setServerError] = useState<string | null>(null);
+  const siteKey = useTurnstileSiteKey();
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const onToken = useCallback((t: string | null) => setCaptcha(t), []);
   const form = useForm<In, unknown, Out>({
     resolver: zodResolver(signupSchema),
     defaultValues: { name: "", mobile: "", email: "", password: "", businessName: "", businessType: "grocery", city: "" },
@@ -26,7 +30,7 @@ export function SignupForm() {
   const onSubmit = form.handleSubmit(async (values) => {
     setServerError(null);
     try {
-      await apiPost("/auth/signup", values);
+      await api("/auth/signup", { method: "POST", body: values, headers: captcha ? { "cf-turnstile-token": captcha } : undefined });
       window.location.assign("/onboarding");
     } catch (err) {
       setServerError(errorMessage(err));
@@ -88,12 +92,13 @@ export function SignupForm() {
           </div>
         </div>
 
+        {siteKey && <Turnstile siteKey={siteKey} onToken={onToken} />}
         {serverError && (
           <p role="alert" className="rounded-xl bg-destructive-soft px-3.5 py-2.5 text-sm font-medium text-destructive">
             {serverError}
           </p>
         )}
-        <Button type="submit" size="lg" className="w-full" loading={isSubmitting}>
+        <Button type="submit" size="lg" className="w-full" loading={isSubmitting} disabled={!!siteKey && !captcha}>
           Create account
         </Button>
       </form>
